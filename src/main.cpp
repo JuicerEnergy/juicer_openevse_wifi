@@ -23,13 +23,13 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
-
 #include <Arduino.h>
 #include <WiFiUdp.h>
-#include <ArduinoOTA.h>               // local OTA update from Arduino IDE
+#include <ArduinoOTA.h> // local OTA update from Arduino IDE
 #include <MongooseCore.h>
 #include <MicroTasks.h>
 #include <LittleFS.h>
+#include <juicer_main.h> //JUCR
 
 #include "emonesp.h"
 #include "app_config.h"
@@ -63,6 +63,8 @@
 #include "scheduler.h"
 
 #include "legacy_support.h"
+#include "juicer_externs.h" //JUCR
+SET_LOOP_TASK_STACK_SIZE(16*1024); // 16KB
 
 EventLog eventLog;
 EvseManager evse(RAPI_PORT, eventLog);
@@ -76,8 +78,9 @@ RapiSender &rapiSender = evse.getSender();
 
 unsigned long Timer1; // Timer for events once every 30 seconds
 unsigned long Timer3; // Timer for events once every 2 seconds
+unsigned long Timer4; // Timer for events once every 5 seconds
 
-boolean rapi_read = 0; //flag to indicate first read of RAPI status
+boolean rapi_read = 0; // flag to indicate first read of RAPI status
 
 static uint32_t start_mem = 0;
 static uint32_t last_mem = 0;
@@ -89,8 +92,7 @@ String currentfirmware = ESCAPEQUOTE(BUILD_TAG);
 String buildenv = ESCAPEQUOTE(BUILD_ENV_NAME);
 String serial;
 
-ArduinoOcppTask ocpp = ArduinoOcppTask();
-
+// ArduinoOcppTask ocpp = ArduinoOcppTask(); //JUCR
 
 static void hardware_setup();
 static void handle_serial();
@@ -114,7 +116,8 @@ void setup()
   serial = ESPAL.getLongId();
   serial.toUpperCase();
 
-  if(!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)){
+  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED))
+  {
     DEBUG.println("LittleFS Mount Failed");
     return;
   }
@@ -158,12 +161,14 @@ void setup()
 
   input_setup();
 
-  ocpp.begin(evse, lcd, eventLog, rfid);
+  // ocpp.begin(evse, lcd, eventLog, rfid); //JUCR
 
   shaper.begin(evse);
 
-  lcd.display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE);
-  lcd.display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE);
+  juicer_setup(); // JUCR
+
+  // lcd.display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE); //JUCR
+  // lcd.display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE); //JUCR
 
   start_mem = last_mem = ESPAL.getFreeHeap();
 } // end setup
@@ -171,8 +176,8 @@ void setup()
 // -------------------------------------------------------------------
 // LOOP
 // -------------------------------------------------------------------
-void
-loop() {
+void loop()
+{
   Profile_Start(loop);
 
   uptimeMillis();
@@ -189,16 +194,16 @@ loop() {
   MicroTask.update();
   Profile_End(MicroTask, 10);
 
-  if(OpenEVSE.isConnected())
+  if (OpenEVSE.isConnected())
   {
-    if(OPENEVSE_STATE_STARTING != evse.getEvseState())
+    if (OPENEVSE_STATE_STARTING != evse.getEvseState())
     {
       // Read initial state from OpenEVSE
       if (rapi_read == 0)
       {
         DBUGLN("first read RAPI values");
-        handleRapiRead(); //Read all RAPI values
-        rapi_read=1;
+        handleRapiRead(); // Read all RAPI values
+        rapi_read = 1;
 
         import_timers(&scheduler);
       }
@@ -206,10 +211,12 @@ loop() {
       // Do these things once every 2s
       // -------------------------------------------------------------------
 #ifdef ENABLE_DEBUG_MEMORY_MONITOR
-      if ((millis() - Timer3) >= 2000) {
+      if ((millis() - Timer3) >= 2000)
+      {
         uint32_t current = ESPAL.getFreeHeap();
         int32_t diff = (int32_t)(last_mem - current);
-        if(diff != 0) {
+        if (diff != 0)
+        {
           DEBUG.printf("%s: Free memory %u - diff %d %d\n", time_format_time(time(NULL)).c_str(), current, diff, start_mem - current);
           last_mem = current;
         }
@@ -219,9 +226,10 @@ loop() {
     }
   }
 
-  if(net.isConnected())
+  if (net.isConnected())
   {
-    if (vehicle_data_src == VEHICLE_DATA_SRC_TESLA) {
+    if (vehicle_data_src == VEHICLE_DATA_SRC_TESLA)
+    {
       teslaClient.loop();
     }
 
@@ -232,9 +240,10 @@ loop() {
     // -------------------------------------------------------------------
     if ((millis() - Timer1) >= 30000)
     {
-      if(!Update.isRunning())
+      if (!Update.isRunning())
       {
-        if(config_ohm_enabled()) {
+        if (config_ohm_enabled())
+        {
           ohm_loop();
         }
       }
@@ -242,7 +251,7 @@ loop() {
       Timer1 = millis();
     }
 
-    if(emoncms_updated)
+    if (emoncms_updated)
     {
       // Send the current state to check the config
       const size_t capacity = JSON_OBJECT_SIZE(33) + 1024;
@@ -253,13 +262,23 @@ loop() {
     }
   } // end WiFi connected
 
-  if(DEBUG_PORT.available()) {
+  if (DEBUG_PORT.available())
+  {
     handle_serial();
+  }
+
+  // JUCR
+  if ((millis() - Timer4) >= 5000)
+  {
+    juicer_loop();
+    uint32_t flash_size = ESP.getFlashChipSize();
+    DBUGF("Juicer is live %ld", flash_size);
+    DBUGF("ActiveState : %s", evse.getState().toString());
+    Timer4 = millis();
   }
 
   Profile_End(loop, 10);
 } // end loop
-
 
 void event_send(String &json)
 {
@@ -270,10 +289,12 @@ void event_send(String &json)
 
 void event_send(JsonDocument &event)
 {
-  #ifdef ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
   serializeJson(event, DEBUG_PORT);
   DBUGLN("");
-  #endif
+#endif
+  juicer_event(event); //JUCR
+  yield(); //JUCR
   web_server_event(event);
   yield();
   mqtt_publish(event);
@@ -288,14 +309,14 @@ void hardware_setup()
 
 class SystemRestart : public MicroTasks::Alarm
 {
-  public:
-    void Trigger()
-    {
-      DBUGLN("Restarting...");
-      evse.saveEnergyMeter();
-      net.wifiStop();
-      ESPAL.reset();
-    }
+public:
+  void Trigger()
+  {
+    DBUGLN("Restarting...");
+    evse.saveEnergyMeter();
+    net.wifiStop();
+    ESPAL.reset();
+  }
 } systemRestartAlarm;
 
 void restart_system()
@@ -307,7 +328,7 @@ void handle_serial()
 {
   String line = DEBUG_PORT.readStringUntil('\n');
   int command_separator = line.indexOf(':');
-  if(command_separator > 0)
+  if (command_separator > 0)
   {
     String command = line.substring(0, command_separator);
     command.trim();
@@ -320,20 +341,23 @@ void handle_serial()
     const size_t capacity = JSON_OBJECT_SIZE(50) + 1024;
     DynamicJsonDocument doc(capacity);
     DeserializationError error = deserializeJson(doc, json);
-    if(error) {
+    if (error)
+    {
       DEBUG_PORT.println("{\"code\":400,\"msg\":\"Could not parse JSON\"}");
       return;
     }
 
-    if(command == "factory" || command == "config")
+    if (command == "factory" || command == "config")
     {
-      if(command.equals("factory") && config_factory_write_lock()) {
+      if (command.equals("factory") && config_factory_write_lock())
+      {
         DEBUG_PORT.println("{\"code\":423,\"msg\":\"Factory settings locked\"}");
         return;
       }
 
       bool config_modified = false;
-      if(config_deserialize(doc)) {
+      if (config_deserialize(doc))
+      {
         config_commit(command == "factory");
         config_modified = true;
         DBUGLN("Config updated");
@@ -346,9 +370,10 @@ void handle_serial()
 // inspired from https://www.snad.cz/en/2018/12/21/uptime-and-esp8266/
 uint64_t uptimeMillis()
 {
-    static uint32_t low32, high32;
-    uint32_t new_low32 = millis();
-    if (new_low32 < low32) high32++;
-    low32 = new_low32;
-    return (uint64_t) high32 << 32 | low32;
+  static uint32_t low32, high32;
+  uint32_t new_low32 = millis();
+  if (new_low32 < low32)
+    high32++;
+  low32 = new_low32;
+  return (uint64_t)high32 << 32 | low32;
 }

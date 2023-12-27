@@ -145,7 +145,6 @@ class LcdTask : public MicroTasks::Task
     LcdTask();
 
     void begin(EvseManager &evse, Scheduler &scheduler, ManualOverride &manual);
-
     void display(const __FlashStringHelper *msg, int x, int y, int time, uint32_t flags);
     void display(String &msg, int x, int y, int time, uint32_t flags);
     void display(const char *msg, int x, int y, int time, uint32_t flags);

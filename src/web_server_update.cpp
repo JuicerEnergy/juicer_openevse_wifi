@@ -115,18 +115,22 @@ size_t handleUpdateUpload(MongooseHttpServerRequest *request, int ev, MongooseSt
   if(MG_EV_HTTP_PART_BEGIN == ev)
   {
 //    dumpRequest(request);
-
+    printf("Starting update");
     if(!http_update_start(filename, request->contentLength())) {
       handleUpdateError(request);
     }
   }
 
+  //JUCR
+    printf("Update started");
   if(!Update.hasError())
   {
+    printf("Going to write %ld", len);
     if(!http_update_write(data, len)) {
       handleUpdateError(request);
     }
   }
+    printf("Update done");
 
   if(MG_EV_HTTP_PART_END == ev)
   {

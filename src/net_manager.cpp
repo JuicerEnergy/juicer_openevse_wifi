@@ -166,7 +166,8 @@ void NetManagerTask::wifiClientConnect()
   // DEBUG.println(epass.c_str());
 
   WiFi.hostname(esp_hostname.c_str());
-  WiFi.setSleep(WIFI_PS_NONE);
+  //JUCR WiFi.setSleep(WIFI_PS_NONE);
+  WiFi.setSleep(WIFI_PS_MAX_MODEM); //JUCR
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
   WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
   WiFi.begin(esid.c_str(), epass.c_str());

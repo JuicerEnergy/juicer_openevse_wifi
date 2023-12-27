@@ -58,6 +58,8 @@ LcdTask::LcdTask() :
 
 void LcdTask::display(Message *msg, uint32_t flags)
 {
+  return ; //JUCR this seemed to be causing a panic.
+  
   if(flags & LCD_DISPLAY_NOW)
   {
     for(Message *next, *node = _head; node; node = next) {
@@ -409,7 +411,8 @@ void LcdTask::displayStateLine(uint8_t evseState, unsigned long &nextUpdate)
   {
     case OPENEVSE_STATE_NOT_CONNECTED:
       // Line 0 "Ready L2:48A"
-      displayNumberValue(0, "Ready", _evse->getChargeCurrent(), 0, "A");
+      showText(0, 0, "Ready to Charge", true); //JUCR
+      //displayNumberValue(0, "Ready to Charge", _evse->getChargeCurrent(), 0, "A"); //JUCR
       _updateStateDisplay = false;
       break;
 
@@ -492,7 +495,7 @@ void LcdTask::displayStateLine(uint8_t evseState, unsigned long &nextUpdate)
     case OPENEVSE_STATE_SLEEPING:
     case OPENEVSE_STATE_DISABLED:
       // Line 0 "zzZ Sleeping Zzz"
-      showText(0, 0, "zzZ Sleeping Zzz", true);
+      showText(0, 0, "Scan QR Code", true); //JUCR
       _updateStateDisplay = false;
       break;
 
@@ -611,7 +614,7 @@ void LcdTask::displayInfoLine(LcdInfoLine line, unsigned long &nextUpdate)
     } break;
 
     case LcdInfoLine::ManualOverride:
-      showText(0, 1, "Manual Override", true);
+      showText(0, 1, "Juicer Energy", true); //JUCR
       break;
 
     default:
