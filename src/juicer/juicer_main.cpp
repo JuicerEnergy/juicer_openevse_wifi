@@ -54,7 +54,8 @@ void juicer_event(JsonDocument &event)
     logLineLevel(10, "Energy Used : %f", energy);
   }
   if (event.containsKey("amp") && event.containsKey("power")){
-    double amps = event["amp"] / AMPS_SCALE_FACTOR;
+    double amps = event["amp"];
+    amps = amps / AMPS_SCALE_FACTOR;
     double power = event["power"];
     logLineLevel(10, "Amps : %f, Power: %f", amps, power);
     PowerManager::getInstance()->setCurrent(amps);
