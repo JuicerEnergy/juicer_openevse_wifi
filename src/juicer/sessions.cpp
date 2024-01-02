@@ -13,7 +13,7 @@ SessionInfo::~SessionInfo(){
 */
 SessionInfo* SessionInfo::loadSession(){
     const char* sess = StorageManager::getInstance()->readText("currentsession.key");
-    logLine("Session load %s", sess);
+    // logLine("Session load %s", sess);
     if (sess){
         SessionInfo *pSession = new SessionInfo();
         pSession->sessionDoc = new DynamicJsonDocument(1024);
@@ -25,7 +25,7 @@ SessionInfo* SessionInfo::loadSession(){
 
 bool SessionInfo::saveSession(){
     serializeJson(*sessionDoc, writeBuffer);
-    logLine("Saving session %s", writeBuffer);
+    logLineLevel(5, "Saving session %s", writeBuffer);
     StorageManager::getInstance()->writeText("currentsession.key", writeBuffer);
     return true;
 }
@@ -49,4 +49,8 @@ void SessionInfo::addSessionEnergy(float energy){
     }
     energydelivered += energy ;
     (*sessionDoc)["edel"] = energydelivered;
+}
+
+void SessionInfo::setSessionEnergy(float energy){
+    (*sessionDoc)["edel"] = energy;
 }

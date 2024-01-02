@@ -22,14 +22,11 @@ void SwitchSetCmd::executeCommand()
     {
         if (mpCommandJSON->containsKey("params") && (*mpCommandJSON)["params"].containsKey("on"))
         {
-            logLine("has on off params");
             bool switchOn = (*mpCommandJSON)["params"]["on"];
             long offAfter = 0 ;
             if ((*mpCommandJSON)["params"].containsKey("toggle_after")){
-                logLine("has offafter");
                 offAfter = (*mpCommandJSON)["params"]["toggle_after"];
             }
-            logLine("call on off");
             juicerOnOff(switchOn, offAfter);
         }
         sprintf(response, responseFmt, JUICER_MACID);

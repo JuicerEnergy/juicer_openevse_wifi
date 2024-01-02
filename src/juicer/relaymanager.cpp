@@ -94,7 +94,7 @@ void RelayManager::relayOff()
   __changed.fire();
 
   // code to turn off relay
-  logLine("Relay OFF");
+  logLineLevel(5, "Relay OFF");
 }
 
 void RelayManager::relayOn()
@@ -103,7 +103,7 @@ void RelayManager::relayOn()
   relayOnTime = millis();
   // code to turn on relay
   __changed.fire();
-  logLine("Relay ON");
+  logLineLevel(5, "Relay ON");
 }
 
 void RelayManager::resetRelay()
@@ -146,13 +146,13 @@ void RelayManager::loopRelay()
       resetRelay();
   }
 
-  // if (!relayState && (evse.getState(EvseClient_OpenEVSE_Manual) != EvseState::Disabled))
-  // {
-  //   EvseProperties props(EvseState::Disabled);
-  //   props.setChargeCurrent(evse.getMaxCurrent(EvseClient_OpenEVSE_Manual));
-  //   props.setAutoRelease(false);
-  //   manual.release();
-  //   manual.claim(props);
-  //   mqtt_publish_override();
-  // }
+  if (!relayState && (evse.getState(EvseClient_OpenEVSE_Manual) != EvseState::Disabled))
+  {
+    EvseProperties props(EvseState::Disabled);
+    props.setChargeCurrent(evse.getMaxCurrent(EvseClient_OpenEVSE_Manual));
+    props.setAutoRelease(false);
+    manual.release();
+    manual.claim(props);
+    mqtt_publish_override();
+  }
 }

@@ -16,7 +16,7 @@
 #define CMD_NONE            0
 #define CMD_SYS_GETINFO     1
 
-#define LOW_CURRENT_THRESHOLD 0.2 // low power if draw is less than 10 milli amps
+#define LOW_CURRENT_THRESHOLD 0.5 // low power if draw is less than 10 milli amps
 #define POWER_DRAW_START_THRESHOLD 1.0
 #define MS_PER_HOUR (60*60*1000) 
 

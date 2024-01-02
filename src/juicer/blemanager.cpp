@@ -107,7 +107,6 @@ void BLEManager::sendResponse(const char* response){
         logLineLevel(0, "WARNING : Sending string longer than 500, %d", resplen);
     }
     char linelen [4] = {0,0,char(resplen/(256)),(char)(resplen%256)};
-    logLineLevel(10, "Sending back %d, [%d, %d, %d, %d]", resplen, linelen[0], linelen[1], linelen[2], linelen[3]);
     logLineLevel(10, "Sending response %s", response);
     // char zero [4] = {0,0,0,10};
     pCharReadWrite->setValue(String(response));

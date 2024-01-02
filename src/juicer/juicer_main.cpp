@@ -52,6 +52,7 @@ void juicer_event(JsonDocument &event)
   if (event.containsKey("total_energy")){
     double energy = event["total_energy"];
     logLineLevel(10, "Energy Used : %f", energy);
+    PowerManager::getInstance()->setTotalEnergy(energy);
   }
   if (event.containsKey("amp") && event.containsKey("power")){
     double amps = event["amp"];

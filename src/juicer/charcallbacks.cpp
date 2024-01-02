@@ -26,7 +26,6 @@ void CharCallbacks::onRead(NimBLECharacteristic *pCharacteristic)
 void CharCallbacks::onWrite(NimBLECharacteristic *pCharacteristic)
 {
     std::lock_guard<std::mutex> lck(juicer_mutex);
-    logLine("ONWRITE ! Free:%ld, Max Alloc: %ld, Min Free: %ld\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap(), ESP.getMinFreeHeap());
     {
         char buff[300];
         std::string uuid = std::string(pCharacteristic->getUUID());
@@ -34,20 +33,20 @@ void CharCallbacks::onWrite(NimBLECharacteristic *pCharacteristic)
         if (uuid.compare(JUICER_CHARACTERISTIC_W))
         {
             const char *input = val.c_str();
-            sprintf(buff, "String : %s", input);
-            logLine(buff);
+            // sprintf(buff, "String : %s", input);
+            // logLine(buff);
             pManager->onInputStringReceived(input);
         }
         else if (uuid.compare(JUICER_CHARACTERISTIC_RW))
         {
             const uint8_t *pData = val.data();
-            sprintf(buff, "Bytes length : %d, [%d, %d, %d, %d]", val.length(), pData[0], pData[1], pData[2], pData[3]);
-            logLine(buff);
+            // sprintf(buff, "Bytes length : %d, [%d, %d, %d, %d]", val.length(), pData[0], pData[1], pData[2], pData[3]);
+            // logLine(buff);
             uint size = 0;
             pManager->onInputSizeReceived(size);
         }
     }
-    logLine("ONWRITE END! Free:%ld, Max Alloc: %ld, Min Free: %ld\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap(), ESP.getMinFreeHeap());
+    // logLine("ONWRITE END! Free:%ld, Max Alloc: %ld, Min Free: %ld\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap(), ESP.getMinFreeHeap());
 };
 /** Called before notification or indication is sent,
  *  the value can be changed here before sending if desired.

@@ -58,19 +58,6 @@ const char* StorageManager::readText(const char* path)
     return mBuffer ;
 }
 
-String StorageManager::readTextOld(const char* path)
-{
-    char pathName[40] ;
-    sprintf(pathName, "/data/%s", path);
-    File f = LittleFS.open(pathName, "r");    
-    if (!f || !f.available()){
-        if (f) f.close();
-        return "" ;
-    }
-    String content = f.readString();
-    f.close();
-    return content ;
-}
 /**
  * Allocate a buffer for this write
 */
@@ -89,16 +76,13 @@ bool StorageManager::writeText(const char* path, const char* s)
 {
     char pathName[40] ;
     sprintf(pathName, "/data/%s", path);
-    logLineLevel(10, "Going to open file %s", pathName);
     File f = LittleFS.open(pathName, "w", true);
     if (!f){
         if (f) f.close();
         return false ;
     }
-    logLineLevel(10, "Going to save file %s", pathName);
     f.print(s);
     f.close();
-    logLineLevel(10, "Closed file %s", pathName);
     return true ;
 }
 

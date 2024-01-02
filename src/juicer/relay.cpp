@@ -10,14 +10,14 @@ void relayOff(){
   relayToggleTime = 0;
   relayState = false;
   // code to turn off relay
-  logLine("Relay OFF");
+  logLineLevel(5, "Relay OFF");
 }
 
 void relayOn(){
   relayState = true;
   digitalWrite(RELAY_PIN, HIGH); // Turn off the relay
   // code to turn on relay
-  logLine("Relay ON");
+  logLineLevel(5, "Relay ON");
 }
 
 void resetRelay()

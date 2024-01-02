@@ -26,10 +26,8 @@ RPCCommand *RPCCommand::getCommandHandler(char *scmd, int source, CommandSource 
     RPCCommand *pCmd = NULL;
 
     // first parse the command
-    logLineLevel(10, "parsing command");
     DynamicJsonDocument *pdoc = new DynamicJsonDocument(1024);
     deserializeJson(*pdoc, scmd);
-    logLineLevel(10, "parsed command");
     const char *command = (*pdoc)["method"];
     if (!strcasecmp(command, "Sys.GetConfig"))
     {

@@ -12,5 +12,7 @@ class SessionInfo{
         const char* getSessionID();
         float getSessionEnergy();
         void addSessionEnergy(float energy);
+        void setSessionEnergy(float energy);
+        
         void setUpTimeSecs(long secs);        
 };

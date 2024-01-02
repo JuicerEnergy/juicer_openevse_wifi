@@ -35,7 +35,6 @@ void PowerManager::setupPM()
   }
 }
 
-
 void PowerManager::begin()
 {
   MicroTask.startTask(this);
@@ -58,7 +57,6 @@ PowerManager *PowerManager::getInstance()
   return PowerManager::mManager;
 }
 
-
 float getCurrent()
 {
   return 0;
@@ -66,9 +64,10 @@ float getCurrent()
 
 bool PowerManager::loopPM()
 {
- // if the relay is on,
+  // if the relay is on,
   if (RelayManager::getInstance()->getRelay())
   {
+    std::lock_guard<std::mutex> lck(juicer_mutex);
     SessionInfo *pSession = SessionInfo::loadSession();
     if (pSession)
     {
@@ -76,11 +75,11 @@ bool PowerManager::loopPM()
       // lastCurrent = getCurrent();
       // lastPower = lastCurrent * GlobalState::getInstance()->getSysVoltage();
       /** update the power used into the current running session */
-      float powerUsageWH = (getTimeMSSinceLastCheck() * lastPower) / MS_PER_HOUR;
+      float powerUsageWH = sessionEnergyUsed;
       logLineLevel(10, "PM state : Current :%f, power: %f, WH used:%f", lastCurrent, lastPower, powerUsageWH);
 
-      pSession->addSessionEnergy(powerUsageWH);
-      pSession->setUpTimeSecs(RelayManager::getInstance()->getRelayUpTime()/1000);
+      pSession->setSessionEnergy(powerUsageWH * 1000); // convert to watt hours
+      pSession->setUpTimeSecs(RelayManager::getInstance()->getRelayUpTime() / 1000);
       pSession->saveSession();
       delete pSession;
 
@@ -96,8 +95,10 @@ bool PowerManager::loopPM()
         {
           powerDownDetectedTime = millis();
         }
-      }else{
-        powerDownDetectedTime = 0 ;
+      }
+      else
+      {
+        powerDownDetectedTime = 0;
       }
 
       // if we have started drawing power, mark that
@@ -113,24 +114,32 @@ bool PowerManager::loopPM()
         doAutoShutoff();
       }
       return true;
-    }else{
-      logLineLevel(10, "PM not running, Session not found");
     }
-  }else{
-    lastCheckTime = 0;
-    lastCurrent = 0 ;
-    lastPower = 0 ;
-    logLine("PM not running, Relay is off");
+    else
+    {
+      logLineLevel(5, "PM not running, Session not found");
+    }
   }
- return false;
+  else
+  {
+    lastCheckTime = 0;
+    lastCurrent = 0;
+    lastPower = 0;
+    sessionEnergyUsed = 0.0;
+    startingEnergyReading = -1.0;
+    powerDownDetectedTime = 0;
+    bPowerDrawStarted = false;
+    logLineLevel(10, "PM not running, Relay is off");
+  }
+  return false;
 }
 
 /**
  * Auto shut off due to power interruption
-*/
+ */
 void PowerManager::doAutoShutoff()
 {
-  logLine("Auto Shut off");
+  logLineLevel(5, "Auto Shut off");
   RelayManager::getInstance()->setRelay(false, 0);
 }
 
@@ -153,8 +162,10 @@ void PowerManager::startSession()
 {
   logLine("PM Session starting");
   lastCheckTime = 0;
-  lastCurrent = 0 ;
-  lastPower = 0 ;
+  lastCurrent = 0;
+  lastPower = 0;
+  sessionEnergyUsed = 0.0;
+  startingEnergyReading = -1.0;
   powerDownDetectedTime = 0;
   bPowerDrawStarted = false;
 }
