@@ -3,18 +3,24 @@
 #include <rpccommand.h>
 #include <logging.h>
 #include <allcommands.h>
+#include <app_config.h>
+#include <net_manager.h>
+
+extern NetManagerTask net;
 
 void WifiGetStatusCmd::executeCommand()
 {
     logLineLevel(10, "executing %s", mCommandName);
     char response[500];
-    const char *responseFmt = "{'src':'%s','result':{'status':'not available','sta':{'ssid':'%s'},'ap':{'ssid':'%s'}}}";
-    sprintf(response, responseFmt, JUICER_MACID, JUICER_MACID, JUICER_MACID);
+    const char *connected = (net.isWifiClientConnected() ? "got ip" : "disconnected");
+    const char *responseFmt = "{'src':'%s','result':{'status':'%s','sta':{'ssid':'%s'},'ap':{'ssid':'%s'}}}";
+    sprintf(response, responseFmt, JUICER_MACID, connected, esid.c_str(), JUICER_MACID);
     for (int i = 0; i < strlen(response); i++)
     {
         if (response[i] == '\'') response[i] = '\"';
     }
     mpCommandSource->sendResponse(response);
+    logLineLevel(10, "AP SSID is %s", esid.c_str() );
 }
 
 /*

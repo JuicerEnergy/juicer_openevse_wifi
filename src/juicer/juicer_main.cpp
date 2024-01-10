@@ -21,6 +21,10 @@ void juicer_setup()
   CommandProcessor::setupProcessor();
   PowerManager::setupPM();
   
+  String pass = GlobalState::getInstance()->getPropertyStr("basicpass");
+  logLineLevel(10, "Password is %s", pass.c_str());
+  GlobalState::getInstance()->setPropertyStr("basicpass", "foo");
+
   // StorageManager::getInstance()->writeText("currentsession.key", "");
   logLine("Done Juicer Setup !\n");
 }

@@ -20,6 +20,7 @@ protected:
   NimBLEAdvertising *pAdvertising;
 
   uint mInputSize = 0 ;
+  char mInputStringPreAuth[600];
   char mInputString[600];
   // char* mInputString = NULL ;
   uint mOutputSize = 0 ;

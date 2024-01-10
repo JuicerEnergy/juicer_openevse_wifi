@@ -159,13 +159,14 @@ void setup()
   DBUGF("After ota_setup: %d", ESPAL.getFreeHeap());
 #endif
 
+  juicer_setup(); // JUCR
+
   input_setup();
 
   // ocpp.begin(evse, lcd, eventLog, rfid); //JUCR
 
   shaper.begin(evse);
 
-  juicer_setup(); // JUCR
 
   // lcd.display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE); //JUCR
   // lcd.display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE); //JUCR

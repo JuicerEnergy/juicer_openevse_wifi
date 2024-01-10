@@ -94,6 +94,7 @@ void BLEManager::onInputSizeReceived(uint size)
 void BLEManager::onInputStringReceived(const char *pData)
 {
     strcpy(mInputString, pData);
+    logLineLevel(10, "BLE Received : %s", mInputString);
     // mInputString = releaseAndAllocateString(mInputString, pData);
     mOutputSize = 0;
     mOutputString = NULL;
