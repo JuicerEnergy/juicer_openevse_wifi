@@ -36,6 +36,7 @@ uint32_t config_ver = INITIAL_CONFIG_VERSION;
 // Wifi Network Strings
 String esid;
 String epass;
+boolean ap_enabled; //JUCR
 String ap_ssid;
 String ap_pass;
 
@@ -141,6 +142,7 @@ ConfigOpt *opts[] =
 // Wifi Network Strings
   new ConfigOptDefenition<String>(esid, "", "ssid", "ws"),
   new ConfigOptSecret(epass, "", "pass", "wp"),
+  new ConfigOptDefenition<boolean>(ap_enabled, false, "ap_enabled", "ae"), //JUCR
   new ConfigOptDefenition<String>(ap_ssid, "", "ap_ssid", "as"),
   new ConfigOptSecret(ap_pass, "", "ap_pass", "ap"),
 
@@ -149,7 +151,7 @@ ConfigOpt *opts[] =
 
 // Web server authentication (leave blank for none)
   new ConfigOptDefenition<String>(www_username, "", "www_username", "au"),
-  new ConfigOptSecret(www_password, "", "www_password", "ap"),
+  new ConfigOptSecret(www_password, "", "www_password", "wp"), //JUCR
 
 // Advanced settings
   new ConfigOptDefenition<String>(esp_hostname, esp_hostname_default, "hostname", "hn"),

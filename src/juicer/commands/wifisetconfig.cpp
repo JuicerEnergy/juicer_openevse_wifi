@@ -3,22 +3,52 @@
 #include <logging.h>
 #include <allcommands.h>
 #include <app_config.h>
+#include <net_manager.h>
 
 void WifiSetConfigCmd::executeCommand()
 {
 
     logLineLevel(10, "executing %s", mCommandName);
-    if (mpCommandJSON && mpCommandJSON->containsKey("params") && ((*mpCommandJSON)["params"]).containsKey("config") && ((*mpCommandJSON)["params"]["config"]).containsKey("sta")){
-        bool bEnabled = true ;
-        const char* ssid = NULL;
-        const char* pass = NULL;
-        if ((*mpCommandJSON)["params"]["config"]["sta"].containsKey("enabled")){
-            bEnabled = (*mpCommandJSON)["params"]["config"]["sta"]["enabled"];
+    if (mpCommandJSON && mpCommandJSON->containsKey("params") && ((*mpCommandJSON)["params"]).containsKey("config"))
+    {
+        bool bEnabled = true;
+        bool bAPEnabled = false;
+        const char *ssid = NULL;
+        const char *pass = NULL;
+        const char *appass = NULL;
+        if (((*mpCommandJSON)["params"]["config"]).containsKey("sta") && (*mpCommandJSON)["params"]["config"]["sta"].containsKey("enable"))
+        {
+            bEnabled = (*mpCommandJSON)["params"]["config"]["sta"]["enable"];
+            if ((*mpCommandJSON)["params"]["config"]["sta"].containsKey("ssid")){
+                ssid = (*mpCommandJSON)["params"]["config"]["sta"]["ssid"];
+                config_set("ssid", bEnabled ? String(ssid) : String(""));
+            }
+            if ((*mpCommandJSON)["params"]["config"]["sta"].containsKey("pass")){
+                pass = (*mpCommandJSON)["params"]["config"]["sta"]["pass"];
+                config_set("pass", bEnabled ? String(pass) : String(""));
+            }
+            if (!bEnabled){
+                config_set("ssid", String(""));
+                config_set("pass", String(""));
+            }
         }
-        ssid = (*mpCommandJSON)["params"]["config"]["sta"]["ssid"];
-        pass = (*mpCommandJSON)["params"]["config"]["sta"]["pass"];
-        config_set("esid", ssid);
-        config_set("pass", pass);
+
+        if (((*mpCommandJSON)["params"]["config"]).containsKey("ap") && (*mpCommandJSON)["params"]["config"]["ap"].containsKey("enable"))
+        {
+            bAPEnabled = (*mpCommandJSON)["params"]["config"]["ap"]["enable"];
+            if ((*mpCommandJSON)["params"]["config"]["ap"].containsKey("pass")){
+                appass = (*mpCommandJSON)["params"]["config"]["ap"]["pass"];
+            }
+            config_set("ap_enabled", bAPEnabled);
+            if (appass && strlen(appass) > 0)
+            {
+                logLineLevel(10, "Setting ap_pass to %s", appass);
+                config_set("ap_pass", String(appass));
+            }
+        }
+
+        config_commit();
+        net.wifiRestart();
     }
     const size_t capacity =
         JSON_ARRAY_SIZE(0) + 2 * JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(4);
@@ -34,4 +64,3 @@ void WifiSetConfigCmd::executeCommand()
     serializeJson(doc, buff);
     mpCommandSource->sendResponse(buff);
 }
-

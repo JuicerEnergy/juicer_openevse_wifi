@@ -115,7 +115,10 @@ void NetManagerTask::wifiStartAccessPoint()
     channel = (random(3) * 5) + 1;
   }
   DBUGVAR(channel);
-  WiFi.softAP(softAP_ssid.c_str(), ap_pass.length()>=8?ap_pass.c_str():_softAP_password, channel);
+  if (ap_enabled){ //JUCR
+    DEBUG.printf("AP Enabled with password : %s\n", ap_pass.length()>=8?ap_pass.c_str():_softAP_password);
+    WiFi.softAP(softAP_ssid.c_str(), ap_pass.length()>=8?ap_pass.c_str():_softAP_password, channel);
+  }
 
   // Setup the DNS server redirecting all the domains to the apIP
   _dnsServer.setErrorReplyCode(DNSReplyCode::NoError);

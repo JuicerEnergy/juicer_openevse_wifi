@@ -13,8 +13,8 @@ void WifiGetStatusCmd::executeCommand()
     logLineLevel(10, "executing %s", mCommandName);
     char response[500];
     const char *connected = (net.isWifiClientConnected() ? "got ip" : "disconnected");
-    const char *responseFmt = "{'src':'%s','result':{'status':'%s','sta':{'ssid':'%s'},'ap':{'ssid':'%s'}}}";
-    sprintf(response, responseFmt, JUICER_MACID, connected, esid.c_str(), JUICER_MACID);
+    const char *responseFmt = "{'src':'%s','result':{'status':'%s','sta':{'ssid':'%s', 'enable':%s},'ap':{'ssid':'%s','enable':%s}}}";
+    sprintf(response, responseFmt, JUICER_MACID, connected, esid.c_str(), esid.length()>0?"true":"false", JUICER_MACID, ap_enabled?"true":"false");
     for (int i = 0; i < strlen(response); i++)
     {
         if (response[i] == '\'') response[i] = '\"';
