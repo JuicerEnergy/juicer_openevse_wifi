@@ -6,6 +6,8 @@
 #include <globalstate.h>
 #include <WiFi.h>
 #include <storagemanager.h>
+#include <app_config.h>
+
 char GlobalState::DeviceID[50];
 char GlobalState::DeviceMAC[20];
 
@@ -22,9 +24,9 @@ void GlobalState::setupGlobalState()
     {
         GlobalState::mState = new GlobalState();
         String address = WiFi.macAddress();
-        strcpy(DeviceMAC, address.c_str());
         strcpy(DeviceID, DEVICE_ID_PREFIX);
         int devidlength = strlen(DeviceID);
+        int maclength = 0;
         for (int i = 0; i < address.length(); i++)
         {
             if (address[i] != ':')
@@ -32,9 +34,16 @@ void GlobalState::setupGlobalState()
                 DeviceID[devidlength] = address[i];
                 DeviceID[devidlength + 1] = 0;
                 devidlength++;
+
+                DeviceMAC[maclength++] = address[i];
+                DeviceMAC[maclength] = 0;
             }
         }
         GlobalState::mState->loadGlobalState();
+        // set the AP SSID to the device id
+        config_set("ap_ssid", String(DeviceID));
+        config_commit();
+        
         logLine("Device id : %s", DeviceID);
     }
 }

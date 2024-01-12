@@ -21,6 +21,7 @@ protected:
   long lastCheckTime = 0;
   float lastCurrent = 0.0;
   float lastPower = 0.0;
+  float totalEnergy = 0.0;
   float sessionEnergyUsed = 0.0;
   float startingEnergyReading = -1.0;
   long powerDownDetectedTime = 0 ;
@@ -42,7 +43,10 @@ public:                     // Access specifier
   void doAutoShutoff();
   long getTimeMSSinceLastCheck();
   float getLastPower(){return lastPower;}
-  void setTotalEnergy(float energy){if (startingEnergyReading < 0.0) startingEnergyReading = energy; sessionEnergyUsed = energy - startingEnergyReading;}
+  void setTotalEnergy(float energy){if (startingEnergyReading < 0.0) startingEnergyReading = energy; totalEnergy = energy; sessionEnergyUsed = energy - startingEnergyReading;}
   void setPower(float pow){lastPower = pow ;}
   void setCurrent(float curr){lastCurrent = curr ;}
+
+  float getCurrent(){return lastCurrent;}
+  float getTotalEnergy(){return totalEnergy;}
 };

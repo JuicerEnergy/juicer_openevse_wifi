@@ -268,15 +268,7 @@ void loop()
     handle_serial();
   }
 
-  // JUCR
-  if ((millis() - Timer4) >= 5000)
-  {
-    juicer_loop();
-    uint32_t flash_size = ESP.getFlashChipSize();
-    DBUGF("Juicer is live %ld", flash_size);
-    DBUGF("ActiveState : %s", evse.getState().toString());
-    Timer4 = millis();
-  }
+  juicer_loop();
 
   Profile_End(loop, 10);
 } // end loop

@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 
 class SessionInfo{
-    DynamicJsonDocument *sessionDoc;
+    DynamicJsonDocument *sessionDoc = NULL;
     char writeBuffer[300];
     public :
         ~SessionInfo();
