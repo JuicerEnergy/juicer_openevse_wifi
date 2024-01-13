@@ -14,7 +14,7 @@ protected:
     char* mCommandName = NULL;
     DynamicJsonDocument *mpCommandJSON = NULL ;
     CommandSource *mpCommandSource;
-    char response[256];
+    char response[500];
 public:
     ~RPCCommand();
     static RPCCommand *getCommandHandler(char *scmd, int source, CommandSource *pCmdSource);

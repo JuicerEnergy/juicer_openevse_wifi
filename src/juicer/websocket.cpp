@@ -4,10 +4,21 @@
 #include <net_manager.h>
 #include <globalstate.h>
 #include <powermanager.h>
+#include <relaymanager.h>
+#include <processor.h>
 #include <emonesp.h>
+#include <juicer_constants.h>
+
 extern EvseManager evse;
 
 JuicerWebSocketTask *JuicerWebSocketTask::mManager = NULL;
+long PeriodicTimer = 0 ;
+#define PERIODIC_STATUS_MILLIS 3600*1000
+
+double dTof(double d)
+{
+    return (d * 9 / 5) + 32;
+}
 
 void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
@@ -28,7 +39,7 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     break;
     case WStype_TEXT:
         logLine("[WSc] get text: %s\n", payload);
-
+        CommandProcessor::getInstance()->onCommandReceived(JuicerWebSocketTask::getInstance(), (char*) payload, COMMAND_SOURCE_WS);
         // send message to server
         // webSocket.sendTXT("message here");
         break;
@@ -119,6 +130,14 @@ void JuicerWebSocketTask::wsLoop()
     {
         _wsClient.disconnect();
     }
+
+    // if a status update is pending, send it.
+    if (mPendingStatusUpdate){
+        sendSwitchStatus();
+    }else if ((millis() - PeriodicTimer) >= PERIODIC_STATUS_MILLIS){
+        mPendingStatusUpdate = true ;
+    }
+
 }
 
 void JuicerWebSocketTask::closeConnection()
@@ -133,25 +152,32 @@ void JuicerWebSocketTask::closeConnection()
  */
 void JuicerWebSocketTask::sendInitialStatus()
 {
+    if (!_wsClient.isConnected()){
+        logLineLevel(10, "WS NOT CONNECTED: Skipping full status");
+        return ;
+    }
+
     PowerManager *pm = PowerManager::getInstance();
     DynamicJsonDocument *pDoc = new DynamicJsonDocument(1024);
-    (*pDoc)["src"] = GlobalState::getInstance()->DeviceID ;
-    (*pDoc)["dst"] = "ws" ;
-    (*pDoc)["method"] = "NotifyFullStatus" ;
+    (*pDoc)["src"] = GlobalState::getInstance()->DeviceID;
+    (*pDoc)["dst"] = "ws";
+    (*pDoc)["method"] = "NotifyFullStatus";
     JsonObject params = pDoc->createNestedObject("params");
     JsonObject sw = params.createNestedObject("switch:0");
-    sw["id"] = 0 ;
-    sw["output"] = false ;
-    sw["apower"] = pm->getLastPower() ;
-    sw["voltage"] = GlobalState::getInstance()->getSysVoltage() ;
+    sw["id"] = 0;
+    sw["output"] = RelayManager::getInstance()->getRelay();
+    sw["apower"] = pm->getLastPower();
+    sw["voltage"] = GlobalState::getInstance()->getSysVoltage();
     sw["current"] = pm->getCurrent();
     JsonObject aenergy = params.createNestedObject("aenergy");
     aenergy["total"] = pm->getTotalEnergy();
-    JsonObject temp = params.createNestedObject("temperature");
-    if(evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR)) {
-        temp["tC"] = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR) * TEMP_SCALE_FACTOR;
+    if (evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR))
+    {
+        JsonObject temp = params.createNestedObject("temperature");
+        double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR) * TEMP_SCALE_FACTOR;
+        temp["tC"] = celsius;
+        temp["tF"] = dTof(celsius);
     }
-    temp["tF"] = 0;
     JsonObject sys = params.createNestedObject("sys");
     sys["mac"] = GlobalState::getInstance()->DeviceMAC;
     JsonObject wifi = params.createNestedObject("wifi");
@@ -162,8 +188,44 @@ void JuicerWebSocketTask::sendInitialStatus()
     _wsClient.sendTXT(mTempBuff);
 }
 
+/**
+ * On first connection send the initial status information
+ */
+void JuicerWebSocketTask::sendSwitchStatus()
+{
+    mPendingStatusUpdate = false ;
+    if (!_wsClient.isConnected()){
+        logLineLevel(10, "WS NOT CONNECTED: Skipping status");
+        return ;
+    }
+    PowerManager *pm = PowerManager::getInstance();
+    DynamicJsonDocument *pDoc = new DynamicJsonDocument(1024);
+    (*pDoc)["src"] = GlobalState::getInstance()->DeviceID;
+    (*pDoc)["dst"] = "ws";
+    (*pDoc)["method"] = "NotifyStatus";
+    JsonObject params = pDoc->createNestedObject("params");
+    JsonObject sw = params.createNestedObject("switch:0");
+    sw["id"] = 0;
+    sw["output"] = RelayManager::getInstance()->getRelay();
+    sw["apower"] = pm->getLastPower();
+    sw["voltage"] = GlobalState::getInstance()->getSysVoltage();
+    sw["current"] = pm->getCurrent();
+    JsonObject aenergy = params.createNestedObject("aenergy");
+    aenergy["total"] = pm->getTotalEnergy();
+    if (evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR))
+    {
+        JsonObject temp = params.createNestedObject("temperature");
+        double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR) * TEMP_SCALE_FACTOR;
+        temp["tC"] = celsius;
+        temp["tF"] = dTof(celsius);
+    }
+    serializeJson(*pDoc, mTempBuff);
+    _wsClient.sendTXT(mTempBuff);
+}
 
-
+void JuicerWebSocketTask::sendResponse(const char* response){
+    _wsClient.sendTXT(response);
+}
 
 
 /*
@@ -177,4 +239,38 @@ PROC:
 "wifi":{"sta_ip":"192.168.1.21","status":"got ip","ssid":"Touchdown","rssi":-37},
 "ws":{"connected":true}}}
 
+*/
+
+/*
+PROC:{"src":"shellyplus1pm-c049ef8cf4e0","dst":"ws","method":"NotifyStatus",
+"params":{
+    "ts":1705084173.38,
+    "switch:0":
+    {"id":0,"output":true,"source":"GATTS","timer_duration":86400,"timer_started_at":1705084173.38}}}
+*/
+
+/*
+PROC:{"src":"shellyplus1pm-c049ef8cf4e0","dst":"ws","method":"NotifyStatus",
+"params":
+{"ts":1705084200.7,
+"switch:0":
+{"id":0,"aenergy":{"by_minute":[0,0,0],"minute_ts":1705084199,"total":0}}}}
+*/
+
+/*
+PROC:{"src":"shellyplus1pm-c049ef8cf4e0","dst":"ws","method":"NotifyStatus",
+"params":
+{
+    "ts":1705084233.79,
+    "switch:0":
+    {"id":0,"apower":0,"current":0,"output":false,"source":"loopback","timer_duration":null,"timer_started_at":null}}}
+
+*/
+
+/*
+PROC:{"src":"shellyplus1pm-c049ef8cf4e0","dst":"ws","method":"NotifyStatus",
+    "params":
+    {"ts":1705084242.7,
+        "switch:0":
+        {"id":0,"temperature":{"tC":22.8,"tF":73.05}}}}
 */

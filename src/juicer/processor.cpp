@@ -36,5 +36,5 @@ void CommandProcessor::onCommandReceived(CommandSource *pCmdSource, char* sComma
         return ;
     }
     pcmd->executeCommand();
-    delete(pcmd);
+    delete pcmd;
 }

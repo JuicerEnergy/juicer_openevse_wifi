@@ -1,6 +1,7 @@
 #pragma once
 #include <MicroTasks.h>
 #include <WebSocketsClient.h>
+#include <commandsource.h>
 
 
 #define AMAZON_CA "-----BEGIN CERTIFICATE-----\n\
@@ -31,7 +32,7 @@ bRRYh5TmOTFffHPLkIhqhBGWJ6bt2YFGpn6jcgAKUj6DiAdjd4lpFw85hdKrCEVN\n\
 akcjMS9cmvqtmg5iUaQqqcT5NJ0hGA==\n\
 -----END CERTIFICATE-----\n"
 
-class JuicerWebSocketTask : public MicroTasks::Task
+class JuicerWebSocketTask : public CommandSource, public MicroTasks::Task 
 {
 private:
     MicroTasks::EventListener _onQueueChanged;
@@ -47,6 +48,7 @@ protected:
     static JuicerWebSocketTask *mManager;
     QueueChanged __changed;
     WebSocketsClient _wsClient; 
+    boolean mPendingStatusUpdate = false; 
     char mTempBuff[500];
 protected:
     void setup();
@@ -62,6 +64,9 @@ public: // Access specifier
     void closeConnection();
 
     void sendInitialStatus();
+    void sendSwitchStatus();
+    void triggerStatusUpdate(){mPendingStatusUpdate = true ; __changed.fire();}
+    void sendResponse(const char* response);
 };
 
 #define NOTIFY_FULL_FORMAT "{\"src\":\"shellyplus1pm-c049ef8cf4e0\",\"dst\":\"ws\",\"method\":\"NotifyFullStatus\","

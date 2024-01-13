@@ -54,3 +54,11 @@ class ShellyGetConfigCmd: public RPCCommand
 {
     void executeCommand();
 };
+
+class UpdateFirmwareCommand: public RPCCommand
+{
+    void executeCommand();
+    void sendUpdateProgress(size_t complete, size_t total);
+    void sendUpdateResult(const char* result);
+
+};

@@ -7,23 +7,27 @@
 void SysGetKVSCmd::executeCommand()
 {
     logLineLevel(10, "executing %s", mCommandName);
-    const char *responseErrFmt = "{'src':'%s'}";
-    const char *responseFmt = "{'src':'%s','result':{'value': %s}}";
+    const char *responseErrFmt = "{'id':%ld,'src':'%s'}";
+    const char *responseFmt = "{'id':%ld,'src':'%s','result':{'value': %s}}";
+    long id = 0 ;
 
     if (!mpCommandJSON || !(mpCommandJSON->containsKey("params") && ((*mpCommandJSON)["params"]).containsKey("key")))
     {
-        sprintf(response, responseErrFmt, JUICER_MACID);
+        sprintf(response, responseErrFmt, (*mpCommandJSON)["id"], JUICER_MACID);
     }
     else
     {
+        if (mpCommandJSON->containsKey("id")){
+            id = (*mpCommandJSON)["id"];
+        }
         char filename[50];
         const char *keyname = (*mpCommandJSON)["params"]["key"];
         sprintf(filename, "%s.key", keyname);
         const char* keyvalue = StorageManager::getInstance()->readText(filename);
         if (!keyvalue){
-            sprintf(response, responseFmt, JUICER_MACID, "{}");
+            sprintf(response, responseFmt, id, JUICER_MACID, "{}");
         }else{
-            sprintf(response, responseFmt, JUICER_MACID, keyvalue);
+            sprintf(response, responseFmt, id, JUICER_MACID, keyvalue);
         }
     }
     replaceQuotes(response);

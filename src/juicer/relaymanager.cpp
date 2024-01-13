@@ -2,6 +2,7 @@
 #include <relaymanager.h>
 #include <logging.h>
 #include <manual.h>
+#include <websocket.h>
 #include "lcd.h"
 #include "mqtt.h"
 
@@ -92,7 +93,7 @@ void RelayManager::relayOff()
   relayOffTime = millis();
   relayState = false;
   __changed.fire();
-
+  JuicerWebSocketTask::getInstance()->triggerStatusUpdate();
   // code to turn off relay
   logLineLevel(5, "Relay OFF");
 }
@@ -103,6 +104,7 @@ void RelayManager::relayOn()
   relayOnTime = millis();
   // code to turn on relay
   __changed.fire();
+  JuicerWebSocketTask::getInstance()->triggerStatusUpdate();
   logLineLevel(5, "Relay ON");
 }
 

@@ -7,7 +7,7 @@ RPCCommand::~RPCCommand()
 {
     if (mpCommandJSON)
     {
-        delete(mpCommandJSON);
+        delete mpCommandJSON;
         mpCommandJSON = NULL;
     }
     if (mCommandName)
