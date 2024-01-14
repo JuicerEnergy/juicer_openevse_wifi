@@ -6,11 +6,24 @@
 void SysGetConfigCmd::executeCommand(){
    logLineLevel(10, "executing %s", mCommandName);
     char response[500];
-    const char *responseFmt = "{'src':'%s','result':{'device':{'mac':'%s','ver':'1.0'}}}";
-    sprintf(response, responseFmt, JUICER_MACID, JUICER_MACADDRESS);
-    for (int i = 0; i < strlen(response); i++)
-    {
-        if (response[i] == '\'') response[i] = '\"';
-    }
-    mpCommandSource->sendResponse(response);
+
+    DynamicJsonDocument doc(100);
+    doc["src"] = JUICER_MACID;
+
+    JsonObject result = doc.createNestedObject("result");
+    JsonObject device = result.createNestedObject("device");
+    JsonObject juicer = device.createNestedObject("juicer");
+
+    device["mac"] = JUICER_MACADDRESS;
+    device["ver"] = JUICER_VERSION;
+    juicer["level"] = GlobalState::getInstance()->getPropertyLong("service");
+    juicer["voltage"] = GlobalState::getInstance()->getPropertyLong("voltage");
+    juicer["maxamps"] = GlobalState::getInstance()->getPropertyLong("maxamps");
+
+    serializeJson(doc, response);
+    if (!mpCommandSource){
+        logLine("No command source !");
+    }else{
+        mpCommandSource->sendResponse(response);
+    }    
 }

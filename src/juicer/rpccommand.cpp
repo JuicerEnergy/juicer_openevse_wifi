@@ -69,6 +69,10 @@ RPCCommand *RPCCommand::getCommandHandler(char *scmd, int source, CommandSource 
     {
         pCmd = new SwitchSetCmd();
     }
+    else if (!strcasecmp(command, "Sys.UpdateFirmware"))
+    {
+        pCmd = new UpdateFirmwareCommand();
+    }
     else{
         pCmd = new Unimplemented();
     }

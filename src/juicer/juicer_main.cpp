@@ -25,9 +25,12 @@ void juicer_setup()
   CommandProcessor::setupProcessor();
   PowerManager::setupPM();
 
-  String pass = GlobalState::getInstance()->getPropertyStr("basicpass");
-  logLineLevel(10, "Password is %s", pass.c_str());
-  GlobalState::getInstance()->setPropertyStr("basicpass", "foo");
+  long level = GlobalState::getInstance()->getPropertyLong("level");
+  logLineLevel(10, "Service Level is %ld", level);
+  long voltage = GlobalState::getInstance()->getPropertyLong("voltage");
+  logLineLevel(10, "Voltage is %ld", voltage);
+  long maxamps = GlobalState::getInstance()->getPropertyLong("maxamps");
+  logLineLevel(10, "Maxamps is %ld", maxamps);
 
   // StorageManager::getInstance()->writeText("currentsession.key", "");
   logLine("Done Juicer Setup !\n");

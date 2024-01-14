@@ -78,6 +78,15 @@ void GlobalState::setPropertyStr(const char* propName, const char* val){
     saveGlobalState();
 }
 
+long GlobalState::getPropertyLong(const char* propName){
+    return mSettings[propName];
+}
+
+void GlobalState::setPropertyLong(const char* propName, long val){
+    mSettings[propName] = val;
+    saveGlobalState();
+}
+
 void GlobalState::loopGlobalState()
 {
 }

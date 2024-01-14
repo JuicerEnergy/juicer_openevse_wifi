@@ -9,16 +9,18 @@
 void UpdateFirmwareCommand::executeCommand()
 {
     const char *status = "FAIL";
-    logLineLevel(10, "executing %s", mCommandName);
+    logLineLevel(10, "executing %s, 1", mCommandName);
     if (mpCommandJSON && mpCommandJSON->containsKey("params") && ((*mpCommandJSON)["params"]).containsKey("url"))
     {
+        const char* url = (*mpCommandJSON)["params"]["url"];
+        logLineLevel(10, "executing %s from url %s", mCommandName, url);
         UpdateFirmwareCommand *pThis = this;
-        if (http_update_from_url((*mpCommandJSON)["params"]["url"], [pThis](size_t complete, size_t total)
-                                 { pThis->sendUpdateProgress(complete, total); },
-                                 [&](int)
-                                 { pThis->sendUpdateResult("OK"); },
-                                 [&](int)
-                                 { pThis->sendUpdateResult("ERROR"); }))
+        if (http_update_from_url(url, [pThis](size_t complete, size_t total)
+                                 { /*logLine("Updating firmware %ld of %ld", complete, total);*//*pThis->sendUpdateProgress(complete, total);*/ },
+                                 [pThis](int)
+                                 { /*pThis->sendUpdateResult("OK");*/ },
+                                 [pThis](int)
+                                 { /*pThis->sendUpdateResult("ERROR");*/ }))
         {
             status = "OK";
         }
@@ -28,35 +30,40 @@ void UpdateFirmwareCommand::executeCommand()
 void UpdateFirmwareCommand::sendUpdateProgress(size_t complete, size_t total)
 {
     logLine("Updating firmware %ld of %ld", complete, total);
-    const size_t capacity =
-        JSON_ARRAY_SIZE(0) + 2 * JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(4);
-    DynamicJsonDocument doc(capacity);
+    DynamicJsonDocument doc(100);
     doc["src"] = JUICER_MACID;
 
     JsonObject result = doc.createNestedObject("result");
     result["complete"] = complete;
     result["total"] = total;
-    char buff[512];
-    serializeJson(doc, buff);
-    mpCommandSource->sendResponse(buff);
+    serializeJson(doc, response);
+    // if (!mpCommandSource){
+    //     logLine("No command source !");
+    // }else{
+    //     mpCommandSource->sendResponse(response);
+    //     logLine("sent..");
+    // }
 }
 
 void UpdateFirmwareCommand::sendUpdateResult(const char *status)
 {
     logLine("Updating firmware Status %s", status);
-    const size_t capacity =
-        JSON_ARRAY_SIZE(0) + 2 * JSON_OBJECT_SIZE(1) + JSON_OBJECT_SIZE(4);
-    DynamicJsonDocument doc(capacity);
-    doc["src"] = JUICER_MACID;
+    DynamicJsonDocument *pdoc = new DynamicJsonDocument(100);
+    logLine("set macid");
+    (*pdoc)["src"] = JUICER_MACID;
 
-    JsonObject result = doc.createNestedObject("result");
+    logLine("set result");
+    JsonObject result = pdoc->createNestedObject("result");
+    logLine("set status");
     result["status"] = status;
-    if (mpCommandJSON && mpCommandJSON->containsKey("id"))
-    {
-        doc["id"] = (*mpCommandJSON)["id"];
-    }
-
-    char buff[512];
-    serializeJson(doc, buff);
-    mpCommandSource->sendResponse(buff);
+    logLine("serializing");
+    serializeJson((*pdoc), response);
+    logLine("sending..");
+    // if (!mpCommandSource){
+    //     logLine("No command source !");
+    // }else{
+    //     mpCommandSource->sendResponse(response);
+    //     logLine("sent..");
+    // }
+    delete pdoc;
 }

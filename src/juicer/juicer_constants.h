@@ -1,7 +1,11 @@
 #ifndef _JUICER_CONSTANTS_H
 #define _JUICER_CONSTANTS_H
 
-#define DEVICE_ID_PREFIX "JUCR-"
+#if VOLTAGE_DEFAULT == 120
+    #define DEVICE_ID_PREFIX "JOEV120-"
+#else
+    #define DEVICE_ID_PREFIX "JOEV240-"
+#endif
 #define JUICER_MACID GlobalState::DeviceID
 #define JUICER_MACADDRESS GlobalState::DeviceMAC
 #define JUICER_SERVICE "5f6d4f53-5f52-5043-5f53-56435f49445f"

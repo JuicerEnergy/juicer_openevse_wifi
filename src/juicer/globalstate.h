@@ -21,5 +21,9 @@ public:                           // Access specifier
     void saveGlobalState();
     String getPropertyStr(const char* propName);
     void setPropertyStr(const char* propName, const char* val);
+
+    long getPropertyLong(const char* propName);
+    void setPropertyLong(const char* propName, long val);
+
     float getSysVoltage() {return mVoltage;}
 };
