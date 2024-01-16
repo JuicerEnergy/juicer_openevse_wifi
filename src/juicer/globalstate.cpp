@@ -73,7 +73,7 @@ String GlobalState::getPropertyStr(const char* propName){
     return mSettings[propName];
 }
 
-void GlobalState::setPropertyStr(const char* propName, const char* val){
+void GlobalState::setPropertyStr(const char* propName, String val){
     mSettings[propName] = val;
     saveGlobalState();
 }

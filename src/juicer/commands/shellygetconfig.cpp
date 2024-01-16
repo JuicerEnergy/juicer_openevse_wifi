@@ -6,8 +6,8 @@
 void ShellyGetConfigCmd::executeCommand(){
    logLineLevel(10, "executing %s", mCommandName);
     char response[500];
-    const char *responseFmt = "{'src':'%s','result':{'ver':'1.0'}}";
-    sprintf(response, responseFmt, JUICER_MACID);
+    const char *responseFmt = "{'src':'%s','result':{'ver':'%s'}}";
+    sprintf(response, responseFmt, JUICER_MACID, STR(JUICER_VERSION));
     for (int i = 0; i < strlen(response); i++)
     {
         if (response[i] == '\'') response[i] = '\"';

@@ -20,7 +20,7 @@ public:                           // Access specifier
     void loadGlobalState();
     void saveGlobalState();
     String getPropertyStr(const char* propName);
-    void setPropertyStr(const char* propName, const char* val);
+    void setPropertyStr(const char* propName, String val);
 
     long getPropertyLong(const char* propName);
     void setPropertyLong(const char* propName, long val);

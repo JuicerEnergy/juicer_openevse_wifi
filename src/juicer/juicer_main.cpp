@@ -10,6 +10,7 @@
 #include <emonesp.h>
 #include <websocket.h>
 #include "evse_man.h"
+#include "juicer_constants.h"
 
 std::mutex juicer_mutex;
 extern EvseManager evse;
@@ -25,13 +26,28 @@ void juicer_setup()
   CommandProcessor::setupProcessor();
   PowerManager::setupPM();
 
-  long level = GlobalState::getInstance()->getPropertyLong("level");
+  String devname = GlobalState::getInstance()->getPropertyStr(PROP_DEVICE_NAME);
+  if (!devname.isEmpty())
+  {
+    logLineLevel(10, "Device name is %s", devname.c_str());
+  }
+  long level = GlobalState::getInstance()->getPropertyLong(PROP_SERVICE_LEVEL);
   logLineLevel(10, "Service Level is %ld", level);
-  long voltage = GlobalState::getInstance()->getPropertyLong("voltage");
+  long voltage = GlobalState::getInstance()->getPropertyLong(PROP_VOLTAGE);
   logLineLevel(10, "Voltage is %ld", voltage);
-  long maxamps = GlobalState::getInstance()->getPropertyLong("maxamps");
+  long maxamps = GlobalState::getInstance()->getPropertyLong(PROP_MAX_AMPS);
   logLineLevel(10, "Maxamps is %ld", maxamps);
 
+  /**
+   * Initialize the EV parameters from EPROM
+   */
+  if (level != 0 && voltage != 0 && maxamps >= 6)
+  {
+    logLine("Initializing EV settings from memory.");
+    evse.setServiceLevel((EvseMonitor::ServiceLevel)GlobalState::getInstance()->getPropertyLong(PROP_SERVICE_LEVEL));
+    evse.setVoltage(GlobalState::getInstance()->getPropertyLong(PROP_VOLTAGE));
+    evse.setMaxConfiguredCurrent(GlobalState::getInstance()->getPropertyLong(PROP_MAX_AMPS));
+  }
   // StorageManager::getInstance()->writeText("currentsession.key", "");
   logLine("Done Juicer Setup !\n");
 }
@@ -48,11 +64,14 @@ void juicer_loop()
     logLine("ActiveState : %s", evse.getState().toString());
     juicer_loop_slow();
     SlowDown = millis();
-  }else{
+  }
+  else
+  {
   }
 }
 
-void juicer_loop_slow(){
+void juicer_loop_slow()
+{
   std::lock_guard<std::mutex> lck(juicer_mutex);
   logLine("Juicer loop ! Free:%ld, Max Alloc: %ld, Min Free: %ld\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap(), ESP.getMinFreeHeap());
 

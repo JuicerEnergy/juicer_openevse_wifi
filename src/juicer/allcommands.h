@@ -1,6 +1,8 @@
 #pragma once
 #include <rpccommand.h>
 #include <globalstate.h>
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
 
 class Unimplemented : public RPCCommand
 {

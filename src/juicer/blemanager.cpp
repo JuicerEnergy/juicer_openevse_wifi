@@ -45,6 +45,7 @@ void BLEManager::setupBLE()
         BLEManager *pManager = BLEManager::mManager;
         chrCallbacks.setBLEManager(pManager);
         NimBLEDevice::init(JUICER_MACID);
+        logLineLevel(10, "BLE Mac ID %s", JUICER_MACID);
         pManager->pServer = NimBLEDevice::createServer();
         pManager->pServer->setCallbacks(new ServerCallbacks());
         pManager->pService = pManager->pServer->createService(JUICER_SERVICE);

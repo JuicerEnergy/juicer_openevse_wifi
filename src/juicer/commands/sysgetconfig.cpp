@@ -7,18 +7,21 @@ void SysGetConfigCmd::executeCommand(){
    logLineLevel(10, "executing %s", mCommandName);
     char response[500];
 
-    DynamicJsonDocument doc(100);
+    DynamicJsonDocument doc(500);
     doc["src"] = JUICER_MACID;
 
     JsonObject result = doc.createNestedObject("result");
     JsonObject device = result.createNestedObject("device");
-    JsonObject juicer = device.createNestedObject("juicer");
 
+    if (GlobalState::getInstance()->getPropertyLong(PROP_DEVICE_NAME)){
+        device["name"] = GlobalState::getInstance()->getPropertyLong(PROP_DEVICE_NAME);
+    }
     device["mac"] = JUICER_MACADDRESS;
-    device["ver"] = JUICER_VERSION;
-    juicer["level"] = GlobalState::getInstance()->getPropertyLong("service");
-    juicer["voltage"] = GlobalState::getInstance()->getPropertyLong("voltage");
-    juicer["maxamps"] = GlobalState::getInstance()->getPropertyLong("maxamps");
+    device["ver"] = STR(JUICER_VERSION);
+    JsonObject juicer = device.createNestedObject("juicer");
+    juicer["level"] = GlobalState::getInstance()->getPropertyLong(PROP_SERVICE_LEVEL);
+    juicer["voltage"] = GlobalState::getInstance()->getPropertyLong(PROP_VOLTAGE);
+    juicer["maxamps"] = GlobalState::getInstance()->getPropertyLong(PROP_MAX_AMPS);
 
     serializeJson(doc, response);
     if (!mpCommandSource){
