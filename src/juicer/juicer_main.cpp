@@ -10,7 +10,7 @@
 #include <emonesp.h>
 #include <websocket.h>
 #include "evse_man.h"
-#include "juicer_constants.h"
+#include "juicer_main.h"
 
 std::mutex juicer_mutex;
 extern EvseManager evse;
@@ -37,6 +37,7 @@ void juicer_setup()
   logLineLevel(10, "Voltage is %ld", voltage);
   long maxamps = GlobalState::getInstance()->getPropertyLong(PROP_MAX_AMPS);
   logLineLevel(10, "Maxamps is %ld", maxamps);
+  logLineLevel(10, "Enable Web Server : %ld", GlobalState::getInstance()->getPropertyLong(PROP_WEB_SERVER));
 
   /**
    * Initialize the EV parameters from EPROM

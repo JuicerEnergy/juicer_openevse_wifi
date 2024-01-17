@@ -22,6 +22,7 @@ void SysGetConfigCmd::executeCommand(){
     juicer["level"] = GlobalState::getInstance()->getPropertyLong(PROP_SERVICE_LEVEL);
     juicer["voltage"] = GlobalState::getInstance()->getPropertyLong(PROP_VOLTAGE);
     juicer["maxamps"] = GlobalState::getInstance()->getPropertyLong(PROP_MAX_AMPS);
+    juicer["enableweb"] = GlobalState::getInstance()->getPropertyLong(PROP_WEB_SERVER);
 
     serializeJson(doc, response);
     if (!mpCommandSource){

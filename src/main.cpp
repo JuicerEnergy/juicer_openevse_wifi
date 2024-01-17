@@ -63,8 +63,8 @@
 #include "scheduler.h"
 
 #include "legacy_support.h"
-#include "juicer_externs.h" //JUCR
-SET_LOOP_TASK_STACK_SIZE(16*1024); // 16KB
+#include "juicer_externs.h"          //JUCR
+SET_LOOP_TASK_STACK_SIZE(16 * 1024); // 16KB
 
 EventLog eventLog;
 EvseManager evse(RAPI_PORT, eventLog);
@@ -150,23 +150,25 @@ void setup()
   Mongoose.begin();
   Mongoose.setRootCa(root_ca);
 
-  // Bring up the web server
-  web_server_setup();
-  DBUGF("After web_server_setup: %d", ESPAL.getFreeHeap());
+  juicer_setup(); // JUCR
 
+  //JUCR - dont start web server if not allowed
+  if (GlobalState::getInstance()->getPropertyLong(PROP_WEB_SERVER))
+  {
+    // Bring up the web server
+    web_server_setup();
+    DBUGF("After web_server_setup: %d", ESPAL.getFreeHeap());
+  }
 #ifdef ENABLE_OTA
   ota_setup();
   DBUGF("After ota_setup: %d", ESPAL.getFreeHeap());
 #endif
-
-  juicer_setup(); // JUCR
 
   input_setup();
 
   // ocpp.begin(evse, lcd, eventLog, rfid); //JUCR
 
   shaper.begin(evse);
-
 
   // lcd.display(F("OpenEVSE WiFI"), 0, 0, 0, LCD_CLEAR_LINE); //JUCR
   // lcd.display(currentfirmware, 0, 1, 5 * 1000, LCD_CLEAR_LINE); //JUCR
@@ -187,7 +189,11 @@ void loop()
   Mongoose.poll(0);
   Profile_End(Mongoose, 10);
 
-  web_server_loop();
+  //JUCR - dont start web server if not allowed
+  if (GlobalState::getInstance()->getPropertyLong(PROP_WEB_SERVER)){
+    web_server_loop();
+  }
+
   ota_loop();
   rapiSender.loop();
 
@@ -286,8 +292,8 @@ void event_send(JsonDocument &event)
   serializeJson(event, DEBUG_PORT);
   DBUGLN("");
 #endif
-  juicer_event(event); //JUCR
-  yield(); //JUCR
+  juicer_event(event); // JUCR
+  yield();             // JUCR
   web_server_event(event);
   yield();
   mqtt_publish(event);
