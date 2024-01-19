@@ -53,6 +53,12 @@ void GlobalState::loadGlobalState()
     const char* state = StorageManager::getInstance()->readText("globalstate.json");
     if (state){
         deserializeJson(mSettings, state);
+    }else{ // no state exists, initialize original settings
+        mSettings[PROP_SERVICE_LEVEL] = DEF_SERVICE_LEVEL ;
+        mSettings[PROP_VOLTAGE] = VOLTAGE_DEFAULT ;
+        mSettings[PROP_MAX_AMPS] = DEF_MAX_AMPS ;
+        mSettings[PROP_WEB_SERVER] = DEF_WEB_SERVER ;
+        saveGlobalState();
     }
 }
 

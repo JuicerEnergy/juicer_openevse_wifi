@@ -361,6 +361,8 @@ unsigned long EvseMonitor::loop(MicroTasks::WakeReason reason)
 
 bool EvseMonitor::begin(RapiSender &sender)
 {
+      // return true; //JUCR
+
   _openevse.begin(sender, [this](bool connected, const char *firmware, const char *protocol)
   {
     if(connected)

@@ -29,4 +29,9 @@
 #define PROP_VOLTAGE "voltage"
 #define PROP_MAX_AMPS "maxamps"
 #define PROP_WEB_SERVER "webserver"
+
+#define DEF_SERVICE_LEVEL 1
+#define DEF_MAX_AMPS 12
+#define DEF_WEB_SERVER 1
+
 #endif

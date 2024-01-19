@@ -47,7 +47,7 @@ private:
 protected:
     static JuicerWebSocketTask *mManager;
     QueueChanged __changed;
-    WebSocketsClient _wsClient; 
+    WebSocketsClient *_wsClient = NULL; 
     boolean mPendingStatusUpdate = false; 
     char mTempBuff[500];
 protected:

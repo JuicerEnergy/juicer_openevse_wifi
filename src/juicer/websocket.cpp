@@ -12,8 +12,8 @@
 extern EvseManager evse;
 
 JuicerWebSocketTask *JuicerWebSocketTask::mManager = NULL;
-long PeriodicTimer = 0 ;
-#define PERIODIC_STATUS_MILLIS 3600*1000
+long PeriodicTimer = 0;
+#define PERIODIC_STATUS_MILLIS 3600 * 1000
 
 double dTof(double d)
 {
@@ -39,7 +39,7 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     break;
     case WStype_TEXT:
         logLine("[WSc] get text: %s\n", payload);
-        CommandProcessor::getInstance()->onCommandReceived(JuicerWebSocketTask::getInstance(), (char*) payload, COMMAND_SOURCE_WS);
+        CommandProcessor::getInstance()->onCommandReceived(JuicerWebSocketTask::getInstance(), (char *)payload, COMMAND_SOURCE_WS);
         // send message to server
         // webSocket.sendTXT("message here");
         break;
@@ -107,44 +107,58 @@ void JuicerWebSocketTask::setup()
  */
 unsigned long JuicerWebSocketTask::loop(MicroTasks::WakeReason reason)
 {
-    _wsClient.loop();
+    if (_wsClient)
+    {
+        _wsClient->loop();
+    }
     return 10;
 }
 
 void JuicerWebSocketTask::sendText(const char *txt)
 {
-    _wsClient.sendTXT(txt);
+    if (_wsClient){
+        _wsClient->sendTXT(txt);
+    }
 }
 
 void JuicerWebSocketTask::wsLoop()
 {
+    if (!net.isConnected())
+        return;
+
     logLineLevel(10, "Web socket checking ...");
-    if (!_wsClient.isConnected() && net.isConnected())
+    if (!_wsClient)
+    {
+        _wsClient = new WebSocketsClient();
+    }
+    if (!_wsClient->isConnected())
     {
         logLineLevel(10, "Web socket connecting ...");
-        _wsClient.onEvent(onWebSocketEvent);
-        _wsClient.begin("192.168.1.23", 3001, "/", "ws");
+        _wsClient->onEvent(onWebSocketEvent);
+        _wsClient->begin("192.168.1.23", 3001, "/", "ws");
         // _wsClient.beginSslWithCA("hub.juicerenergy.net", 443, "/", AMAZON_CA, "wss");
     }
-    if (!net.isConnected())
-    {
-        _wsClient.disconnect();
-    }
-
     // if a status update is pending, send it.
-    if (mPendingStatusUpdate){
+    if (mPendingStatusUpdate)
+    {
         sendSwitchStatus();
-    }else if ((millis() - PeriodicTimer) >= PERIODIC_STATUS_MILLIS){
-        mPendingStatusUpdate = true ;
     }
-
+    else if ((millis() - PeriodicTimer) >= PERIODIC_STATUS_MILLIS)
+    {
+        mPendingStatusUpdate = true;
+    }
 }
 
 void JuicerWebSocketTask::closeConnection()
 {
     logLineLevel(10, "Disconnecting web socket, will check later");
-    _wsClient.disconnect();
-    _wsClient.begin("", 0);
+    if (_wsClient)
+    {
+        _wsClient->onEvent(NULL);
+        _wsClient->disconnect();
+        delete _wsClient;
+        _wsClient = NULL ;
+    }
 }
 
 /**
@@ -152,9 +166,10 @@ void JuicerWebSocketTask::closeConnection()
  */
 void JuicerWebSocketTask::sendInitialStatus()
 {
-    if (!_wsClient.isConnected()){
+    if (!_wsClient || !_wsClient->isConnected())
+    {
         logLineLevel(10, "WS NOT CONNECTED: Skipping full status");
-        return ;
+        return;
     }
 
     PowerManager *pm = PowerManager::getInstance();
@@ -185,7 +200,8 @@ void JuicerWebSocketTask::sendInitialStatus()
     wifi["ssid"] = esid;
     wifi["ssid"] = "got ip";
     serializeJson(*pDoc, mTempBuff);
-    _wsClient.sendTXT(mTempBuff);
+    _wsClient->sendTXT(mTempBuff);
+    delete pDoc ;
 }
 
 /**
@@ -193,10 +209,11 @@ void JuicerWebSocketTask::sendInitialStatus()
  */
 void JuicerWebSocketTask::sendSwitchStatus()
 {
-    mPendingStatusUpdate = false ;
-    if (!_wsClient.isConnected()){
+    mPendingStatusUpdate = false;
+    if (!_wsClient || !_wsClient->isConnected())
+    {
         logLineLevel(10, "WS NOT CONNECTED: Skipping status");
-        return ;
+        return;
     }
     PowerManager *pm = PowerManager::getInstance();
     DynamicJsonDocument *pDoc = new DynamicJsonDocument(1024);
@@ -220,13 +237,15 @@ void JuicerWebSocketTask::sendSwitchStatus()
         temp["tF"] = dTof(celsius);
     }
     serializeJson(*pDoc, mTempBuff);
-    _wsClient.sendTXT(mTempBuff);
+    _wsClient->sendTXT(mTempBuff);
+    delete pDoc ;
 }
 
-void JuicerWebSocketTask::sendResponse(const char* response){
-    _wsClient.sendTXT(response);
+void JuicerWebSocketTask::sendResponse(const char *response)
+{
+    if (!_wsClient || !_wsClient->isConnected()) return ;
+    _wsClient->sendTXT(response);
 }
-
 
 /*
 PROC:
