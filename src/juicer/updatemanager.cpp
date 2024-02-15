@@ -3,6 +3,7 @@
 #include <juicer_constants.h>
 #include <logging.h>
 #include <http_update.h>
+#include <websocket.h>
 
 UpdateManager *UpdateManager::mManager = NULL ;
 
@@ -11,6 +12,10 @@ bool UpdateManager::startUpdate(const char *url)
     mUpdateTotalSize = 0 ;
     mUpdateDone = 0;
     mUpdateStatus = UpdateStatus::InProgress;
+    
+    // before starting the update, pause the Juicer Web Socket, so as to free some memory
+    JuicerWebSocketTask::getInstance()->pauseProcessing();
+
     return http_update_from_url(
         url, [](size_t complete, size_t total)
         { 
@@ -23,7 +28,8 @@ bool UpdateManager::startUpdate(const char *url)
         },
         [](int)
         {
-                logLine("Updating firmware Failure called");
+            logLine("Updating firmware Failure called");
             UpdateManager::getInstance()->setUpdateStatus(UpdateStatus::Failed);
+            JuicerWebSocketTask::getInstance()->resumeProcessing(); // if failed we can resume processing websockets.
         });
 }

@@ -37,7 +37,7 @@ void ServerCallbacks::onDisconnect(NimBLEServer *pServer)
 };
 void ServerCallbacks::onMTUChange(uint16_t MTU, ble_gap_conn_desc *desc)
 {
-    Serial.printf("MTU updated: %u for connection ID: %u\n", MTU, desc->conn_handle);
+    //Serial.printf("MTU updated: %u for connection ID: %u\n", MTU, desc->conn_handle);
 };
 
 /********************* Security handled here **********************
@@ -65,7 +65,7 @@ void ServerCallbacks::onAuthenticationComplete(ble_gap_conn_desc *desc)
     if (!desc->sec_state.encrypted)
     {
         NimBLEDevice::getServer()->disconnect(desc->conn_handle);
-        Serial.println("Encrypt connection failed - disconnecting client");
+        //Serial.println("Encrypt connection failed - disconnecting client");
         return;
     }
     logLine("Starting BLE work!");

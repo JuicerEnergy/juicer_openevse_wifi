@@ -13,7 +13,7 @@ extern EvseManager evse;
 
 JuicerWebSocketTask *JuicerWebSocketTask::mManager = NULL;
 long PeriodicTimer = 0;
-#define PERIODIC_STATUS_MILLIS 3600 * 1000
+#define PERIODIC_STATUS_MILLIS 50 * 1000
 
 double dTof(double d)
 {
@@ -116,14 +116,15 @@ unsigned long JuicerWebSocketTask::loop(MicroTasks::WakeReason reason)
 
 void JuicerWebSocketTask::sendText(const char *txt)
 {
-    if (_wsClient){
+    if (_wsClient)
+    {
         _wsClient->sendTXT(txt);
     }
 }
 
 void JuicerWebSocketTask::wsLoop()
 {
-    if (!net.isConnected())
+    if (!net.isConnected() || mPaused)
         return;
 
     logLineLevel(10, "Web socket checking ...");
@@ -135,17 +136,26 @@ void JuicerWebSocketTask::wsLoop()
     {
         logLineLevel(10, "Web socket connecting ...");
         _wsClient->onEvent(onWebSocketEvent);
-        _wsClient->begin("192.168.1.23", 3001, "/", "ws");
-        // _wsClient.beginSslWithCA("hub.juicerenergy.net", 443, "/", AMAZON_CA, "wss");
+        //_wsClient->begin("192.168.1.23", 3001, "/", "ws");
+        _wsClient->beginSslWithCA("hub.juicerenergy.net", 443, "/", AMAZON_CA, "wss");
     }
-    // if a status update is pending, send it.
-    if (mPendingStatusUpdate)
+    else
     {
-        sendSwitchStatus();
-    }
-    else if ((millis() - PeriodicTimer) >= PERIODIC_STATUS_MILLIS)
-    {
-        mPendingStatusUpdate = true;
+        logLineLevel(10, "Checking for update");
+        logLineLevel(10, "Time elapsed: %ld secs", ((millis() - PeriodicTimer)/1000));
+        // if a status update is pending, send it.
+        if (mPendingStatusUpdate)
+        {
+            logLineLevel(10, "Pending update, sending");
+            PeriodicTimer = millis();
+            sendSwitchStatus();
+        }
+        else if ((millis() - PeriodicTimer) >= PERIODIC_STATUS_MILLIS)
+        {
+            logLineLevel(10, "Time elapsed, sending");
+            PeriodicTimer = millis();
+            sendSwitchStatus();
+        }
     }
 }
 
@@ -154,10 +164,9 @@ void JuicerWebSocketTask::closeConnection()
     logLineLevel(10, "Disconnecting web socket, will check later");
     if (_wsClient)
     {
-        _wsClient->onEvent(NULL);
         _wsClient->disconnect();
         delete _wsClient;
-        _wsClient = NULL ;
+        _wsClient = NULL;
     }
 }
 
@@ -182,15 +191,19 @@ void JuicerWebSocketTask::sendInitialStatus()
     sw["id"] = 0;
     sw["output"] = RelayManager::getInstance()->getRelay();
     sw["apower"] = pm->getLastPower();
+    lastSentPower = pm->getLastPower();
     sw["voltage"] = GlobalState::getInstance()->getSysVoltage();
+    lastSentVolts = GlobalState::getInstance()->getSysVoltage();
     sw["current"] = pm->getCurrent();
+    lastSentCurrent = pm->getCurrent();
     JsonObject aenergy = params.createNestedObject("aenergy");
     aenergy["total"] = pm->getTotalEnergy();
     if (evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR))
     {
         JsonObject temp = params.createNestedObject("temperature");
-        double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR) * TEMP_SCALE_FACTOR;
+        double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR);
         temp["tC"] = celsius;
+        lastSentTempdC = celsius;
         temp["tF"] = dTof(celsius);
     }
     JsonObject sys = params.createNestedObject("sys");
@@ -201,7 +214,7 @@ void JuicerWebSocketTask::sendInitialStatus()
     wifi["ssid"] = "got ip";
     serializeJson(*pDoc, mTempBuff);
     _wsClient->sendTXT(mTempBuff);
-    delete pDoc ;
+    delete pDoc;
 }
 
 /**
@@ -223,27 +236,46 @@ void JuicerWebSocketTask::sendSwitchStatus()
     JsonObject params = pDoc->createNestedObject("params");
     JsonObject sw = params.createNestedObject("switch:0");
     sw["id"] = 0;
-    sw["output"] = RelayManager::getInstance()->getRelay();
-    sw["apower"] = pm->getLastPower();
-    sw["voltage"] = GlobalState::getInstance()->getSysVoltage();
-    sw["current"] = pm->getCurrent();
+    if (mSwitchStateChanged){
+        mSwitchStateChanged = false ;
+        sw["output"] = RelayManager::getInstance()->getRelay();
+    }
+    if (abs(pm->getLastPower() - lastSentPower) > POWER_UPDATE_DELTA){
+        sw["apower"] = pm->getLastPower();
+        lastSentPower = pm->getLastPower();
+    }
+
+    if (abs(pm->getCurrent() - lastSentPower) > CURRENT_UPDATE_DELTA){
+        sw["current"] = pm->getCurrent();
+        lastSentCurrent = pm->getCurrent();
+    }
+
+    if (abs(GlobalState::getInstance()->getSysVoltage() - lastSentVolts) > VOLT_UPDATE_DELTA){
+        sw["voltage"] = GlobalState::getInstance()->getSysVoltage();
+        lastSentVolts = GlobalState::getInstance()->getSysVoltage();
+    }
+
     JsonObject aenergy = params.createNestedObject("aenergy");
     aenergy["total"] = pm->getTotalEnergy();
     if (evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR))
     {
         JsonObject temp = params.createNestedObject("temperature");
-        double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR) * TEMP_SCALE_FACTOR;
-        temp["tC"] = celsius;
-        temp["tF"] = dTof(celsius);
+        double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR);
+        if (abs(celsius - lastSentTempdC) > TEMP_DC_UPDATE_DELTA){
+            temp["tC"] = celsius;
+            lastSentTempdC = celsius;
+            temp["tF"] = dTof(celsius);
+        }
     }
     serializeJson(*pDoc, mTempBuff);
     _wsClient->sendTXT(mTempBuff);
-    delete pDoc ;
+    delete pDoc;
 }
 
 void JuicerWebSocketTask::sendResponse(const char *response)
 {
-    if (!_wsClient || !_wsClient->isConnected()) return ;
+    if (!_wsClient || !_wsClient->isConnected())
+        return;
     _wsClient->sendTXT(response);
 }
 
@@ -292,4 +324,7 @@ PROC:{"src":"shellyplus1pm-c049ef8cf4e0","dst":"ws","method":"NotifyStatus",
     {"ts":1705084242.7,
         "switch:0":
         {"id":0,"temperature":{"tC":22.8,"tF":73.05}}}}
+
+Periodic :
+{"ts":1707806460.65,"switch:0":{"id":0,"aenergy":{"by_minute":[0,0,0],"minute_ts":1707806459,"total":1444.015}}}        
 */

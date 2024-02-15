@@ -44,6 +44,7 @@
 #include "lcd.h"
 #include "openevse.h"
 #include "root_ca.h"
+#include "websocket.h"
 #include "espal.h"
 #include "time_man.h"
 #include "tesla_client.h"
@@ -149,6 +150,8 @@ void setup()
   // Initialise Mongoose networking library
   Mongoose.begin();
   Mongoose.setRootCa(root_ca);
+  // Mongoose.setRootCa(AMAZON_CA);
+  DBUGF("ROOT CA: %s", root_ca);
 
   juicer_setup(); // JUCR
 

@@ -15,13 +15,26 @@ static int lastPercent = -1;
 static size_t update_total_size = 0;
 static size_t update_position = 0;
 
+// void printTestResponse(MongooseHttpClientResponse *response)
+// {
+//   DBUGF("%d %.*s\n", response->respCode(), response->respStatusMsg().length(), (const char *)response->respStatusMsg());
+//   int headers = response->headers();
+//   int i;
+//   for(i=0; i<headers; i++) {
+//     DBUGF("_HEADER[%.*s]: %.*s\n", 
+//       response->headerNames(i).length(), (const char *)response->headerNames(i), 
+//       response->headerValues(i).length(), (const char *)response->headerValues(i));
+//   }
+
+//   DBUGF("\n%.*s\n", response->body().length(), (const char *)response->body());
+// }
+
 bool http_update_from_url(String url,
   std::function<void(size_t complete, size_t total)> progress,
   std::function<void(int)> success,
   std::function<void(int)> error)
 {
   DBUGF("Update from URL: %s", url.c_str());
-
   MongooseHttpClientRequest *request = client.beginRequest(url.c_str());
   if(request)
   {
@@ -40,7 +53,7 @@ bool http_update_from_url(String url,
         {
           uint8_t *data = (uint8_t *)response->body().c_str();
           size_t len = response->body().length();
-          if(http_update_write(data, len))
+          if(len <=0 || http_update_write(data, len))
           {
             progress(len, total);
             return;

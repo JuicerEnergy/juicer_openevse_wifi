@@ -3,6 +3,10 @@
 #include <WebSocketsClient.h>
 #include <commandsource.h>
 
+#define POWER_UPDATE_DELTA 0.5f
+#define VOLT_UPDATE_DELTA   0.5
+#define CURRENT_UPDATE_DELTA 0.25
+#define TEMP_DC_UPDATE_DELTA 2
 
 #define AMAZON_CA "-----BEGIN CERTIFICATE-----\n\
 MIIEkjCCA3qgAwIBAgITBn+USionzfP6wq4rAfkI7rnExjANBgkqhkiG9w0BAQsF\n\
@@ -49,6 +53,13 @@ protected:
     QueueChanged __changed;
     WebSocketsClient *_wsClient = NULL; 
     boolean mPendingStatusUpdate = false; 
+    boolean mSwitchStateChanged = false; 
+    boolean mPaused = false ;
+    float lastSentPower = -1 ;
+    float lastSentCurrent = -1 ;
+    double lastSentTempdC = -1000 ;
+    float lastSentEnergy = -1 ;
+    float lastSentVolts = -1 ;
     char mTempBuff[500];
 protected:
     void setup();
@@ -62,10 +73,11 @@ public: // Access specifier
     static void setupWebSockets(); // Method/function declaration
     static JuicerWebSocketTask *getInstance();
     void closeConnection();
-
+    void pauseProcessing() {closeConnection(); mPaused = true;}
+    void resumeProcessing() {mPaused = false;}
     void sendInitialStatus();
     void sendSwitchStatus();
-    void triggerStatusUpdate(){mPendingStatusUpdate = true ; __changed.fire();}
+    void triggerStatusUpdate(){mPendingStatusUpdate = true; mSwitchStateChanged = true ; __changed.fire();}
     void sendResponse(const char* response);
 };
 
