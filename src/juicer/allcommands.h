@@ -1,8 +1,7 @@
 #pragma once
 #include <rpccommand.h>
 #include <globalstate.h>
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
+#include <juicer_constants.h>
 
 class Unimplemented : public RPCCommand
 {
@@ -63,4 +62,10 @@ class UpdateFirmwareCommand: public RPCCommand
     void sendUpdateProgress(size_t complete, size_t total);
     void sendUpdateResult(const char* result);
 
+};
+
+
+class ResetCommand: public RPCCommand
+{
+    void executeCommand();
 };

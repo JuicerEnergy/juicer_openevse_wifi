@@ -5,6 +5,6 @@
 
 void Unimplemented::executeCommand()
 {
-    logLineLevel(10, "executing %s", mCommandName);
+    logLineLevel(10, "executing unknown %s", mCommandName);
     returnBlankResult();
 }

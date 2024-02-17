@@ -15,6 +15,10 @@ char GlobalState::DeviceMAC[20];
 GlobalState *GlobalState::mState = NULL;
 char saveBuff[1024];
 
+
+GlobalState::GlobalState():mSettings(1024){
+
+}
 /**
  * Called on startup
  */
@@ -66,6 +70,7 @@ void GlobalState::saveGlobalState()
 {
     serializeJson(mSettings, saveBuff);
     StorageManager::getInstance()->writeText("globalstate.json", saveBuff);
+    logLine("Saving settings : %s", saveBuff);
     // delete str;
 }
 
@@ -79,8 +84,13 @@ String GlobalState::getPropertyStr(const char* propName){
     return mSettings[propName];
 }
 
+void GlobalState::removeProperty(const char* propName){
+    mSettings.remove(propName);
+    saveGlobalState();
+}
 void GlobalState::setPropertyStr(const char* propName, String val){
-    mSettings[propName] = val;
+    mSettings[propName].set(val);
+    logLine("Setting prop %s as %s", propName, val.c_str());
     saveGlobalState();
 }
 

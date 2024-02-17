@@ -73,7 +73,12 @@ RPCCommand *RPCCommand::getCommandHandler(char *scmd, int source, CommandSource 
     {
         pCmd = new UpdateFirmwareCommand();
     }
-    else{
+    else if (!strcasecmp(command, "Shelly.FactoryReset"))
+    {
+        pCmd = new ResetCommand();
+    }
+    else
+    {
         pCmd = new Unimplemented();
     }
 

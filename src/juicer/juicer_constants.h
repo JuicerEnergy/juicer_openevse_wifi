@@ -29,9 +29,19 @@
 #define PROP_VOLTAGE "voltage"
 #define PROP_MAX_AMPS "maxamps"
 #define PROP_WEB_SERVER "webserver"
+#define PROP_FIRMWARE_UPDATE_URL "updateurl"
+#define PROP_FIRMWARE_UPDATE_STATUS "updatestatus"
 
 #define DEF_SERVICE_LEVEL 1
 #define DEF_MAX_AMPS 12
 #define DEF_WEB_SERVER 1
+
+#define UPDATE_STATUS_NONE String("none")
+#define UPDATE_STATUS_STARTED String("started")
+#define UPDATE_STATUS_SUCCESS String("success")
+#define UPDATE_STATUS_FAILED String("failed")
+
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
 
 #endif

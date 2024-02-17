@@ -212,6 +212,8 @@ void JuicerWebSocketTask::sendInitialStatus()
     wifi["sta_ip"] = net.getIp();
     wifi["ssid"] = esid;
     wifi["ssid"] = "got ip";
+    params["version"] = STR(JUICER_VERSION);
+    params["uptimesec"] = (int)(millis()/1000);
     serializeJson(*pDoc, mTempBuff);
     _wsClient->sendTXT(mTempBuff);
     delete pDoc;
@@ -257,11 +259,12 @@ void JuicerWebSocketTask::sendSwitchStatus()
 
     JsonObject aenergy = params.createNestedObject("aenergy");
     aenergy["total"] = pm->getTotalEnergy();
+    params["uptimesec"] = (int)(millis()/1000);
     if (evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR))
     {
-        JsonObject temp = params.createNestedObject("temperature");
         double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR);
         if (abs(celsius - lastSentTempdC) > TEMP_DC_UPDATE_DELTA){
+            JsonObject temp = params.createNestedObject("temperature");
             temp["tC"] = celsius;
             lastSentTempdC = celsius;
             temp["tF"] = dTof(celsius);

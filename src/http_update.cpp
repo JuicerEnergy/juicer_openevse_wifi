@@ -15,45 +15,85 @@ static int lastPercent = -1;
 static size_t update_total_size = 0;
 static size_t update_position = 0;
 
-// void printTestResponse(MongooseHttpClientResponse *response)
-// {
-//   DBUGF("%d %.*s\n", response->respCode(), response->respStatusMsg().length(), (const char *)response->respStatusMsg());
-//   int headers = response->headers();
-//   int i;
-//   for(i=0; i<headers; i++) {
-//     DBUGF("_HEADER[%.*s]: %.*s\n", 
-//       response->headerNames(i).length(), (const char *)response->headerNames(i), 
-//       response->headerValues(i).length(), (const char *)response->headerValues(i));
-//   }
-
-//   DBUGF("\n%.*s\n", response->body().length(), (const char *)response->body());
-// }
-
-bool http_update_from_url(String url,
-  std::function<void(size_t complete, size_t total)> progress,
-  std::function<void(int)> success,
-  std::function<void(int)> error)
+long totalDownload = 0;
+bool http_update_from_url_minimal(String url,
+                                  std::function<void(size_t complete, size_t total)> progress,
+                                  std::function<void(int)> success,
+                                  std::function<void(int)> error)
 {
   DBUGF("Update from URL: %s", url.c_str());
+  totalDownload = 0;
   MongooseHttpClientRequest *request = client.beginRequest(url.c_str());
-  if(request)
+  if (!request){
+    return false ;
+  }
+  request->setMethod(HTTP_GET);
+  //  request->addHeader("X-hello", "world");
+  request->onBody([url, progress](MongooseHttpClientResponse *response)
+                  {
+                    size_t total = response->contentLength();
+                    long len = response->body().length();
+                    totalDownload += response->body().length();
+                    DBUGF("Downloaded %ld of %ld, response %d", totalDownload, total, response->respCode());
+                    if (response->respCode() == 200 && len > 0){
+                      if(Update.isRunning() || http_update_start(url.c_str(), total)){
+                        uint8_t *data = (uint8_t *)response->body().c_str();
+                        if(http_update_write(data, len)){
+                          DBUGF("OTA Updated\n");
+                          progress(len, total);
+                        }
+                      }
+                    } 
+                    });
+  request->onResponse([](MongooseHttpClientResponse *response)
+                      { DBUGF("On response %d\n", response->respCode()); });
+
+  request->onClose([error, success]()
+                   {
+                      DBUGF("onClose !");
+                      if(Update.isRunning())
+                        {
+                          DBUGF("Ending Update");
+                          if(http_update_end())
+                          {
+                            DBUGF("Update succesful");
+                            success(HTTP_UPDATE_OK);
+                          } else {
+                            DBUGF("Ending Update Failed!");
+                            error(HTTP_UPDATE_ERROR_WRITE_FAILED);
+                          }
+                        } });
+  client.send(request);
+  return true ;
+}
+
+bool http_update_from_url(String url,
+                          std::function<void(size_t complete, size_t total)> progress,
+                          std::function<void(int)> success,
+                          std::function<void(int)> error)
+{
+  DBUGF("Update from URL: %s", url.c_str());
+
+  MongooseHttpClientRequest *request = client.beginRequest(url.c_str());
+  if (request)
   {
     request->setMethod(HTTP_GET);
-
+    request->addHeader("Connection", "keep-alive");
     DBUGF("Trying to fetch firmware from %s", url.c_str());
 
-    request->onBody([url,progress,error,request](MongooseHttpClientResponse *response)
-    {
+    request->onBody([url, progress, error, request](MongooseHttpClientResponse *response)
+                    {
       DBUGF("Update onBody %d", response->respCode());
-      if(response->respCode() == 200)
+      if(response->respCode() == 200 || response->respCode() == 206)
       {
+        size_t len = response->body().length();
+        if (len <= 0) return ;
         size_t total = response->contentLength();
         DBUGVAR(total);
         if(Update.isRunning() || http_update_start(url, total))
         {
           uint8_t *data = (uint8_t *)response->body().c_str();
-          size_t len = response->body().length();
-          if(len <=0 || http_update_write(data, len))
+          if(http_update_write(data, len))
           {
             progress(len, total);
             return;
@@ -69,23 +109,22 @@ bool http_update_from_url(String url,
       } else {
         error(response->respCode());
       }
-      request->abort();
-    });
+      request->abort(); });
 
-    request->onResponse([progress, error, success, request](MongooseHttpClientResponse *response)
-    {
-      DBUGF("Update onResponse %d", response->respCode());
-      if(301 == response->respCode() ||
-         302 == response->respCode())
-      {
-        MongooseString location = response->headers("Location");
-        DBUGVAR(location.toString());
-        http_update_from_url(location.toString(), progress, success, error);
-      }
-    });
+    request->onResponse([](MongooseHttpClientResponse *response)
+                        {
+                          DBUGF("Update onResponse %d", response->respCode());
+                          // if(301 == response->respCode() ||
+                          //    302 == response->respCode())
+                          // {
+                          //   MongooseString location = response->headers("Location");
+                          //   DBUGVAR(location.toString());
+                          //   http_update_from_url(location.toString(), progress, success, error);
+                          // }
+                        });
 
     request->onClose([success, error]()
-    {
+                     {
       DBUGLN("Update onClose");
       if(Update.isRunning())
       {
@@ -97,7 +136,7 @@ bool http_update_from_url(String url,
           error(HTTP_UPDATE_ERROR_FAILED_TO_END_UPDATE);
         }
       }
-    });
+      error(HTTP_UPDATE_ERROR_FAILED_TO_END_UPDATE); });
     client.send(request);
 
     return true;
@@ -110,7 +149,7 @@ bool http_update_start(String source, size_t total)
 {
   update_position = 0;
   update_total_size = total;
-  if(Update.begin())
+  if (Update.begin())
   {
     DEBUG_PORT.printf("Update Start: %s %zu\n", source.c_str(), total);
 
@@ -135,15 +174,15 @@ bool http_update_write(uint8_t *data, size_t len)
   DBUGF("Update Writing %u, %u", update_position, len);
   size_t written = Update.write(data, len);
   DBUGVAR(written);
-  if(written == len)
+  if (written == len)
   {
     update_position += len;
-    if(update_total_size > 0)
+    if (update_total_size > 0)
     {
       int percent = update_position / (update_total_size / 100);
       DBUGVAR(percent);
       DBUGVAR(lastPercent);
-      if(percent != lastPercent)
+      if (percent != lastPercent)
       {
         String text = String(percent) + F("%");
         lcd.display(text, 0, 1, 10 * 1000, LCD_DISPLAY_NOW);
@@ -167,7 +206,7 @@ bool http_update_write(uint8_t *data, size_t len)
 bool http_update_end()
 {
   DBUGLN("Upload finished");
-  if(Update.end(true))
+  if (Update.end(true))
   {
     DBUGF("Update Success: %u", update_position);
     lcd.display(F("Complete"), 0, 1, 10 * 1000, LCD_CLEAR_LINE | LCD_DISPLAY_NOW);
@@ -176,7 +215,9 @@ bool http_update_end()
     web_server_event(event);
     yield();
     return true;
-  } else {
+  }
+  else
+  {
     DBUGF("Update failed: %d", Update.getError());
     StaticJsonDocument<128> event;
     event["ota"] = "failed";

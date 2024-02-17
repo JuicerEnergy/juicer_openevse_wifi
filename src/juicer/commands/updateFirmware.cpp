@@ -6,6 +6,7 @@
 #include <net_manager.h>
 #include <http_update.h>
 #include <updatemanager.h>
+extern EvseManager evse;
 
 void UpdateFirmwareCommand::executeCommand()
 {
@@ -13,18 +14,27 @@ void UpdateFirmwareCommand::executeCommand()
     DynamicJsonDocument doc(100);
     doc["src"] = JUICER_MACID;
     JsonObject result = doc.createNestedObject("result");
-
     if (mpCommandJSON && mpCommandJSON->containsKey("params") && ((*mpCommandJSON)["params"]).containsKey("url"))
     {
         const char *url = (*mpCommandJSON)["params"]["url"];
-        logLineLevel(10, "executing %s from url %s", mCommandName, url);
-        if (!UpdateManager::getInstance()->canUpdate())
+        logLineLevel(10, "executing %s from url %s , state : %d", mCommandName, url, evse.getEvseState());
+        if (evse.getEvseState() == OPENEVSE_STATE_CHARGING){
+            result["status"] = "NOT_DISABLED";
+            result["statusdesc"] = "EVSE is active";
+        }else if (!UpdateManager::getInstance()->canUpdate())
         {
             result["status"] = "INPROGRESS";
-        }else if (!UpdateManager::getInstance()->startUpdate(url)){
-            result["status"] = "FAILEDTOSTART";
+            result["statusdesc"] = "An update is in progress";
         }else{
+            GlobalState::getInstance()->setPropertyStr(PROP_FIRMWARE_UPDATE_URL, String(url));
+            logLineLevel(10, "Update URL set to %s", GlobalState::getInstance()->getPropertyStr(PROP_FIRMWARE_UPDATE_URL));
             result["status"] = "OK";
+            result["statusdesc"] = "Started";
+            serializeJson(doc, response);
+            mpCommandSource->sendResponse(response);
+            logLineLevel(10, "Restarting system to begin update");
+            restart_system();
+            return ;
         }
     }else{ // we just want status
         const char * stat = "Unknown" ;

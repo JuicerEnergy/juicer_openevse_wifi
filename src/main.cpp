@@ -185,12 +185,17 @@ void setup()
 void loop()
 {
   Profile_Start(loop);
-
-  uptimeMillis();
-
   Profile_Start(Mongoose);
   Mongoose.poll(0);
   Profile_End(Mongoose, 10);
+
+  if (juicer_update_loop()){
+    ota_loop();
+    Profile_Start(MicroTask);
+    MicroTask.update();
+    Profile_End(MicroTask, 10);    
+    return ;
+  }
 
   //JUCR - dont start web server if not allowed
   if (GlobalState::getInstance()->getPropertyLong(PROP_WEB_SERVER)){

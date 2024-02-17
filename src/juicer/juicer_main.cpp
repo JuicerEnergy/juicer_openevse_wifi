@@ -11,15 +11,21 @@
 #include <websocket.h>
 #include "evse_man.h"
 #include "juicer_main.h"
+#include "updatemanager.h"
+#include "net_manager.h"
 
 std::mutex juicer_mutex;
 extern EvseManager evse;
+String updateURL = String("");
+extern NetManagerTask net;
 
 void juicer_setup()
 {
   logLine("Starting Juicer Setup !\n");
   StorageManager::setupStorage();
   GlobalState::setupGlobalState();
+  updateURL = GlobalState::getInstance()->getPropertyStr(PROP_FIRMWARE_UPDATE_URL) ;
+  logLine("On Startup Update URL is %s", updateURL.c_str());
   BLEManager::setupBLE();
   JuicerWebSocketTask::setupWebSockets();
   RelayManager::setupRelay();
@@ -55,6 +61,61 @@ void juicer_setup()
 
 unsigned long SlowDown; // Timer for events once every 5 seconds
 void juicer_loop_slow();
+
+/**
+ * this function handles firmware updates. If this returns true, Juicer is busy updating,
+ * and other stuff should stop.
+ */
+boolean bIsRestarting = false;
+boolean juicer_update_loop()
+{
+  if (bIsRestarting)
+    return true;
+
+  // is juicer updating ? return true
+  UpdateManager::UpdateStatus status = UpdateManager::getInstance()->getUpdateStatus();
+  // if update is running or failed
+  if (status == UpdateManager::InProgress)
+  {
+    return true;
+  }
+
+  if (status == UpdateManager::Failed || status == UpdateManager::Success)
+  {
+    GlobalState::getInstance()->setPropertyStr(PROP_FIRMWARE_UPDATE_STATUS, status == UpdateManager::Success ? UPDATE_STATUS_SUCCESS : UPDATE_STATUS_FAILED);
+    bIsRestarting = true;
+    restart_system();
+    return true;
+  }
+
+  // is there a Firmware URl queued to be downloaded ?
+  if (updateURL.isEmpty() || updateURL.length() < 10){
+    // logLine("No firmware update URL found");
+    return false;
+  }else{
+    // logLine("Update URL is %s", updateURL.c_str());
+  }
+
+  if (net.isConnected() && net.getIp().length() > 0 && status == UpdateManager::NotStarted)
+  {
+    logLine("Starting firmware update, gateway ip %s", net.getIp().c_str());
+    // first update the saved update configuration to "started"
+    GlobalState::getInstance()->removeProperty(PROP_FIRMWARE_UPDATE_URL);
+    boolean bUpdateResult = UpdateManager::getInstance()->startUpdate(updateURL.c_str());
+    updateURL.clear();    
+    if (bUpdateResult)
+    {
+      GlobalState::getInstance()->setPropertyStr(PROP_FIRMWARE_UPDATE_STATUS, UPDATE_STATUS_STARTED);
+    }
+    else
+    {
+      GlobalState::getInstance()->setPropertyStr(PROP_FIRMWARE_UPDATE_STATUS, UPDATE_STATUS_FAILED);
+    }
+    logLine("Started firmware Update !\n");
+    return true;
+  }
+  return false;
+}
 void juicer_loop()
 {
   // JUCR

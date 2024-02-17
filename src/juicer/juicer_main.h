@@ -5,4 +5,5 @@
 
 extern void juicer_setup();
 extern void juicer_loop();
+extern boolean juicer_update_loop();
 

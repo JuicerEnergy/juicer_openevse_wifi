@@ -9,6 +9,7 @@
 #include "input.h"
 #include "app_config.h"
 #include <sys/time.h>
+#include <updatemanager.h> //JUCR
 
 static void IGNORE(int ret) {
 }

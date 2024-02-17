@@ -14,6 +14,11 @@
 
 #define HTTP_UPDATE_OK                                 0
 
+bool http_update_from_url_minimal(String url,
+  std::function<void(size_t complete, size_t total)> progress,
+  std::function<void(int)> success,
+  std::function<void(int)> error);
+
 bool http_update_from_url(String url,
   std::function<void(size_t complete, size_t total)> progress,
   std::function<void(int)> success,
