@@ -29,9 +29,44 @@ RPCCommand *RPCCommand::getCommandHandler(char *scmd, int source, CommandSource 
     DynamicJsonDocument *pdoc = new DynamicJsonDocument(1024);
     deserializeJson(*pdoc, scmd);
     const char *command = (*pdoc)["method"];
+
+    if (AuthNeeded::needsAuthentication())
+    {
+        AuthNeeded *pAuth = new AuthNeeded();
+        pAuth->mCommandSrc = source;
+        pAuth->mpCommandSource = pCmdSource; // who sent the command
+        pAuth->setJSON(pdoc);
+
+        if (!pdoc->containsKey("auth") ||
+            !((*pdoc)["auth"]).containsKey("response") ||
+            !((*pdoc)["auth"]).containsKey("cnonce") ||
+            !((*pdoc)["auth"]).containsKey("nonce"))
+        {
+            logLineLevel(10, "Unauthenticated command received");
+            return pAuth;
+        }
+
+        // authentication record is present, validate it first. if it fails,
+        // return a error result.
+        bool bIsValid = pAuth->validateRequest();
+        if (bIsValid){
+            pAuth->setJSON(NULL); // dont accidentally delete the original document if valid
+        }
+        
+        delete pAuth ; // dont need this anymore
+        if (!bIsValid)
+        {
+            return NULL;
+        }
+    }
+
     if (!strcasecmp(command, "Sys.GetConfig"))
     {
         pCmd = new SysGetConfigCmd();
+    }
+    else if (!strcasecmp(command, "Shelly.SetAuth"))
+    {
+        pCmd = new ShellySetAuthCmd();
     }
     else if (!strcasecmp(command, "Sys.SetConfig"))
     {

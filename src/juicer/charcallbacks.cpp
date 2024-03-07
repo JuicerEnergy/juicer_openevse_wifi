@@ -10,7 +10,6 @@
 #include <logging.h>
 #include <charcallbacks.h>
 #include <globalstate.h>
-
 void CharCallbacks::onRead(NimBLECharacteristic *pCharacteristic)
 {
     std::lock_guard<std::mutex> lck(juicer_mutex);
@@ -27,23 +26,35 @@ void CharCallbacks::onWrite(NimBLECharacteristic *pCharacteristic)
 {
     std::lock_guard<std::mutex> lck(juicer_mutex);
     {
-        char buff[300];
         std::string uuid = std::string(pCharacteristic->getUUID());
-        NimBLEAttValue val = pCharacteristic->getValue();
         if (uuid.compare(JUICER_CHARACTERISTIC_W))
-        {
+        {          
+            char *pBuff = inputbuff + currentBuffLen ;
+            int inputlen = 0 ;  
+            // read the entire incoming buffer
+            NimBLEAttValue val = pCharacteristic->getValue();
             const char *input = val.c_str();
+            inputlen = strlen(input);
+            if (inputlen > 0 && (currentBuffLen + inputlen) < MAX_BUFF_LEN){
+                strcpy(pBuff, input);
+            }
+            currentBuffLen += inputlen;
             // sprintf(buff, "String : %s", input);
             // logLine(buff);
-            pManager->onInputStringReceived(input);
+            if (currentBuffLen == sizeToRead){
+                pManager->onInputStringReceived(inputbuff);
+            }
         }
         else if (uuid.compare(JUICER_CHARACTERISTIC_RW))
         {
+            NimBLEAttValue val = pCharacteristic->getValue();
             const uint8_t *pData = val.data();
             // sprintf(buff, "Bytes length : %d, [%d, %d, %d, %d]", val.length(), pData[0], pData[1], pData[2], pData[3]);
             // logLine(buff);
-            uint size = 0;
-            pManager->onInputSizeReceived(size);
+            sizeToRead = pData[3] + pData[2]*256;
+            currentBuffLen = 0 ;
+
+            // pManager->onInputSizeReceived(size);
         }
     }
     // logLine("ONWRITE END! Free:%ld, Max Alloc: %ld, Min Free: %ld\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap(), ESP.getMinFreeHeap());

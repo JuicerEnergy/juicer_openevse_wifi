@@ -69,3 +69,18 @@ class ResetCommand: public RPCCommand
 {
     void executeCommand();
 };
+
+class ShellySetAuthCmd: public RPCCommand
+{
+    void executeCommand();
+};
+
+class AuthNeeded: public RPCCommand{
+    static char lastNonce[40] ;
+    void executeCommand();
+    void return401();
+    void return403();
+public:
+    static bool needsAuthentication();
+    bool validateRequest();
+};

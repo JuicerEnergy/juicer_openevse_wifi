@@ -25,6 +25,7 @@
 #define PLUGIN_GRACE_MS (60*1000) // grace period for initial plug in
 
 #define PROP_DEVICE_NAME "devicename"
+#define PROP_AUTH_PASSWORD "authpassword"
 #define PROP_SERVICE_LEVEL "level"
 #define PROP_VOLTAGE "voltage"
 #define PROP_MAX_AMPS "maxamps"

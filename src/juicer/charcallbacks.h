@@ -1,3 +1,4 @@
+#define MAX_BUFF_LEN 600
 
 class BLEManager;
 /**  None of these are required as they will be handled by the library with defaults. **
@@ -5,6 +6,9 @@ class BLEManager;
 class CharCallbacks : public NimBLECharacteristicCallbacks
 {
     BLEManager *pManager;
+    int sizeToRead = 0 ;
+    int currentBuffLen = 0 ;
+    char inputbuff[MAX_BUFF_LEN];
 
     void onRead(NimBLECharacteristic *pCharacteristic);
     void onWrite(NimBLECharacteristic *pCharacteristic);

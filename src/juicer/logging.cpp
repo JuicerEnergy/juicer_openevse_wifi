@@ -29,12 +29,12 @@ void setLogLevel(int level)
 /**
  * Log the given line depending on the current log level
  */
-char logbuffer[256];
+char logbuffer[600];
 void logLine(const char *line, ...)
 {
   va_list args;
   va_start(args, line);
-  vsnprintf(logbuffer, 256, line, args);
+  vsnprintf(logbuffer, 600, line, args);
   va_end(args);
 
   // printf(logbuffer);
@@ -54,7 +54,7 @@ void logLineLevel(int level, const char *line, ...)
   }  
   va_list args;
   va_start(args, line);
-  vsnprintf(logbuffer, 256, line, args);
+  vsnprintf(logbuffer, 600, line, args);
   va_end(args);
 
   DBUGLN(logbuffer);

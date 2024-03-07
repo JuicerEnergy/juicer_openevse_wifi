@@ -154,6 +154,7 @@ void JuicerWebSocketTask::wsLoop()
         {
             logLineLevel(10, "Time elapsed, sending");
             PeriodicTimer = millis();
+            // _wsClient->sendPing();
             sendSwitchStatus();
         }
     }
@@ -214,6 +215,7 @@ void JuicerWebSocketTask::sendInitialStatus()
     wifi["ssid"] = "got ip";
     params["version"] = STR(JUICER_VERSION);
     params["uptimesec"] = (int)(millis()/1000);
+    params["freeheap"] = ESP.getFreeHeap();
     serializeJson(*pDoc, mTempBuff);
     _wsClient->sendTXT(mTempBuff);
     delete pDoc;
@@ -260,6 +262,7 @@ void JuicerWebSocketTask::sendSwitchStatus()
     JsonObject aenergy = params.createNestedObject("aenergy");
     aenergy["total"] = pm->getTotalEnergy();
     params["uptimesec"] = (int)(millis()/1000);
+    params["freeheap"] = ESP.getFreeHeap();
     if (evse.isTemperatureValid(EVSE_MONITOR_TEMP_MONITOR))
     {
         double celsius = evse.getTemperature(EVSE_MONITOR_TEMP_MONITOR);

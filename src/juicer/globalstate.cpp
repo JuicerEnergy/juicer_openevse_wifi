@@ -80,6 +80,10 @@ GlobalState *GlobalState::getInstance()
     return GlobalState::mState;
 }
 
+bool GlobalState::hasProperty(const char* propName){
+    return mSettings.containsKey(propName);
+}
+
 String GlobalState::getPropertyStr(const char* propName){
     return mSettings[propName];
 }

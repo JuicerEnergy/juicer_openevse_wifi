@@ -21,6 +21,7 @@ public:
     void loadGlobalState();
     void saveGlobalState();
     String getPropertyStr(const char* propName);
+    bool hasProperty(const char* propName);
     void setPropertyStr(const char* propName, String val);
     void removeProperty(const char* propName);
 
